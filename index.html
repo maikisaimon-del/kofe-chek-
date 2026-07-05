@@ -1606,10 +1606,13 @@ function render(){
     case 'shift-report': title = top.params.item.title; sub = top.params.item.meta; renderShiftReport(top.params); break;
     case 'training-report': title = top.params.item.title; sub = top.params.item.meta; renderTrainingReport(top.params); break;
     case 'training-report-result': title=''; renderTrainingReportResult(top.params); break;
-    case 'order-sheet-search': title='Лист заявки'; sub='Найдите позиции и отметьте нужные'; renderOrderSheetSearch(); break;
+    case 'order-sheet-search': title='Заявка'; sub='Найдите позиции и отметьте нужные'; renderOrderSheetSearch(); break;
     case 'order-sheet-summary': title='Заявка'; sub='Список по поставщикам'; renderOrderSheetSummary(); break;
-    case 'approvals-list': title='Согласование заявок'; sub='Ожидают решения управляющего'; renderApprovalsList(); break;
     case 'employee-hours': title='Часы сотрудников'; sub='Смены и часы по каждому сотруднику'; renderEmployeeHours(); break;
+    case 'audits-hub': title='Аудиты/Ежедневки'; sub='Выберите раздел'; renderAuditsHub(); break;
+    case 'reports-hub': title='Отчёты'; sub='Выберите раздел'; renderReportsHub(); break;
+    case 'knowledge-hub': title='База знаний'; sub='Выберите раздел'; renderKnowledgeHub(); break;
+    case 'product-matrix-hub': title='Матрица продуктов'; sub='Сырьё или готовая продукция'; renderProductMatrixHub(); break;
     case 'shift-report-result': title=''; renderShiftReportResult(top.params); break;
     case 'kb-article': title = top.params.article.title; sub=''; renderKbArticle(top.params); break;
     case 'feedback': title = 'Обратная связь'; sub='Ваши идеи и замечания'; renderFeedback(); break;
@@ -1634,44 +1637,23 @@ function renderHome(){
       </div>
     </div>
 
-    <div class="section-title">Аудиты/Ежедневки</div>
     <div class="card-grid">
-      ${catCard('📋','Проверки','4 раздела аудита →','openList','audits')}
-      ${catCard('✅','Чек-листы','4 чек-листа →','openList','checklists')}
-      ${catCard('📖','Журналы','Здоровье · температура · гигрометр →','openList','journals')}
+      ${catCard('📋','Аудиты/Ежедневки','Проверки · Чек-листы · Журналы →','push','audits-hub')}
     </div>
 
-    <div class="section-title">Отчёты</div>
     <div class="card-grid">
-      ${catCard('📊','Закрывающие отчёты','2 отчёта →','openList','reports')}
-      ${catCard('⏱️','Учёт рабочего времени','Учёт часов сотрудника →','openList','timesheet')}
-      ${catCard('📊','Часы сотрудников','Сводка смен и часов по каждому →','push','employee-hours')}
-      ${catCard('🎓','Учёт времени обучения','Наставник + сотрудники →','openList','trainingTime')}
-      ${catCard('👤','Сотрудники','ФИО · должность · ставка →','openKbDirect','employees')}
+      ${catCard('📊','Отчёты','Закрывающие · время · сотрудники →','push','reports-hub')}
     </div>
 
-    <div class="section-title">База знаний</div>
     <div class="card-grid">
-      ${catCard('📐','ТТК','Технологические карты →','openList','ttk')}
-      ${catCard('🌡️','Сроки хранения','Каталог сроков годности →','openKbDirect','shelfLife')}
-      ${catCard('🧾','Матрица заказа сырьё','19 поставщиков →','openList','orderMatrix')}
-      ${catCard('📦','Матрица заказа готовые','12 поставщиков →','openList','orderMatrixReady')}
-      ${catCard('📚','Инструкции и стандарты','Управляющий · менеджер · бариста →','openList','knowledge')}
+      ${catCard('📚','База знаний','ТТК · сроки · матрицы · стандарты →','push','knowledge-hub')}
     </div>
 
     <div class="feedback-strip" onclick="openOrderSheet()">
       <div class="icon">🛒</div>
       <div>
-        <strong>Лист заявки</strong>
+        <strong>Заявка</strong>
         <span>Собрать заявку по позициям из обеих матриц</span>
-      </div>
-    </div>
-
-    <div class="feedback-strip" onclick="push('approvals-list')">
-      <div class="icon">✅</div>
-      <div>
-        <strong>Согласование заявок</strong>
-        <span>Заявки на закупку, ожидающие решения управляющего</span>
       </div>
     </div>
 
@@ -2975,59 +2957,30 @@ function filterSuppliers(section, query){
 let orderCart = {}; // key -> {name, supplierTitle, qty}
 let orderAuthor = '';
 let orderPoint = '';
-let orderCategory = '';
 
 function openOrderSheet(){
   orderCart = {};
   orderAuthor = '';
   orderPoint = '';
-  orderCategory = '';
   push('order-sheet-search', {});
 }
 
-const DESSERT_KEYWORDS = [
-  'торт','эклер','чизкейк','пирожное','батончик','макаронс','печенье','брауни','трюфель',
-  'слойка','булочка','круассан','кекс','тарт','рулет','десерт','йогурт','меренг','киндер',
-  'орешки со сгущ','шу со сгущ','картошка'
-];
-
-function classifyReadyItem(title){
-  const t = title.toLowerCase();
-  return DESSERT_KEYWORDS.some(k=>t.includes(k)) ? 'Десерты' : 'Сытное';
-}
-
 function allOrderCatalogs(){
-  if(orderCategory==='Сырьё') return DATA.orderMatrix||[];
-  if(orderCategory==='Сытное' || orderCategory==='Десерты'){
-    return (DATA.orderMatrixReady||[]).map(sup=>({
-      ...sup,
-      articles: sup.articles.filter(a=>classifyReadyItem(a.title)===orderCategory)
-    }));
-  }
   return [...(DATA.orderMatrix||[]), ...(DATA.orderMatrixReady||[])];
 }
 
 function renderOrderSheetSearch(){
   contentEl.innerHTML = `
     <div class="who-field">
-      <label>Кто составляет заявку</label>
+      <label>Составил</label>
       <select id="orderAuthorInput" onchange="orderAuthor=this.value">${nameSelectOptions(orderAuthor)}</select>
     </div>
     <div class="who-field">
-      <label>Точка, куда заказывают</label>
+      <label>Кофейня</label>
       <select id="orderPointInput" onchange="orderPoint=this.value">
-        <option value="" ${!orderPoint?'selected':''} disabled>Выберите точку</option>
+        <option value="" ${!orderPoint?'selected':''} disabled>Выберите кофейню</option>
         <option value="Садовая" ${orderPoint==='Садовая'?'selected':''}>Садовая</option>
         <option value="Богданова" ${orderPoint==='Богданова'?'selected':''}>Богданова</option>
-      </select>
-    </div>
-    <div class="who-field">
-      <label>Категория</label>
-      <select id="orderCategoryInput" onchange="orderCategory=this.value; filterOrderSheet(document.getElementById('orderSearchInput').value);">
-        <option value="" ${!orderCategory?'selected':''} disabled>Выберите категорию</option>
-        <option value="Сытное" ${orderCategory==='Сытное'?'selected':''}>Сытное</option>
-        <option value="Десерты" ${orderCategory==='Десерты'?'selected':''}>Десерты</option>
-        <option value="Сырьё" ${orderCategory==='Сырьё'?'selected':''}>Сырьё</option>
       </select>
     </div>
     <div class="who-field">
@@ -3115,15 +3068,11 @@ function openOrderSheetSummary(){
     return;
   }
   if(!orderAuthor){
-    showToast('Выберите, кто составляет заявку');
+    showToast('Выберите, кто составил заявку');
     return;
   }
   if(!orderPoint){
-    showToast('Выберите точку, куда заказывают');
-    return;
-  }
-  if(!orderCategory){
-    showToast('Выберите категорию');
+    showToast('Выберите кофейню');
     return;
   }
   push('order-sheet-summary', {});
@@ -3137,8 +3086,7 @@ function renderOrderSheetSummary(){
   });
 
   let html = `<div class="who-field"><label>Составил</label><div style="font-weight:700;font-size:15px;padding-top:4px;">${orderAuthor}</div></div>
-  <div class="who-field"><label>Точка</label><div style="font-weight:700;font-size:15px;padding-top:4px;">${orderPoint}</div></div>
-  <div class="who-field"><label>Категория</label><div style="font-weight:700;font-size:15px;padding-top:4px;">${orderCategory}</div></div>`;
+  <div class="who-field"><label>Кофейня</label><div style="font-weight:700;font-size:15px;padding-top:4px;">${orderPoint}</div></div>`;
 
   Object.keys(bySupplier).forEach(sup=>{
     html += `<div class="section-title">${sup}</div><div class="q-block" style="padding:6px 14px;">`;
@@ -3167,21 +3115,21 @@ function submitOrderSheet(){
     bySupplier[item.supplierTitle].push(item);
   });
 
-  const answers = { 'Дата': nowDateStr(), 'Точка': orderPoint, 'Категория': orderCategory };
+  const answers = { 'Дата': nowDateStr(), 'Кофейня': orderPoint };
   Object.keys(bySupplier).forEach(sup=>{
     const lines = bySupplier[sup].map(i=>`${i.name} — ${i.qty} шт`).join('; ');
     answers['Поставщик: '+sup] = lines;
   });
 
   const payload = {
-    type:'order-sheet', title:'Лист заявки', submittedBy: orderAuthor,
+    type:'order-sheet', title:'Заявка', submittedBy: orderAuthor,
     timestamp: new Date().toLocaleString('ru-RU'), answers, photos:[]
   };
   sendToSheet(payload);
   STATE.submissions.push(payload);
 
   orderCart = {};
-  push('success', {label:'Лист заявки'});
+  push('success', {label:'Заявка'});
 }
 
 function openKbDirect(key){
@@ -3321,103 +3269,157 @@ function saveScriptUrl(){
 
 /* ---------------- ОТПРАВКА В GOOGLE ТАБЛИЦУ ---------------- */
 
-/* ---------------- СОГЛАСОВАНИЕ ЗАЯВОК ---------------- */
+/* ---------------- ЧАСЫ СОТРУДНИКОВ ---------------- */
 
-function renderApprovalsList(){
-  if(!CONFIG.scriptUrl){
-    contentEl.innerHTML = `<div class="empty-state"><span class="icon">⚙️</span>Сначала подключите Google Таблицу в Настройках — без неё список заявок недоступен.</div>`;
-    return;
-  }
-  contentEl.innerHTML = `<div class="empty-state"><span class="icon">⏳</span>Загружаем заявки…</div>`;
+/* ---------------- ПАПКА АУДИТЫ/ЕЖЕДНЕВКИ ---------------- */
 
-  fetch(CONFIG.scriptUrl + '?action=orders')
-    .then(r=>r.json())
-    .then(data=>{
-      if(data.status!=='ok'){ throw new Error(data.message||'Ошибка'); }
-      renderApprovalsData(data.orders||[]);
-    })
-    .catch(err=>{
-      contentEl.innerHTML = `<div class="empty-state"><span class="icon">⚠️</span>Не удалось загрузить заявки.<br><span style="font-size:11px;">${err}</span></div>`;
-    });
-}
-
-function statusBadge(status){
-  if(status==='Подтверждено') return `<span class="badge" style="background:var(--sage);color:#fff;">✓ Согласована</span>`;
-  if(status==='Отклонено') return `<span class="badge" style="background:var(--alert);color:#fff;">✕ Отклонена</span>`;
-  return `<span class="badge" style="background:var(--copper);color:#fff;">Ожидает</span>`;
-}
-
-function renderApprovalsData(orders){
-  if(orders.length===0){
-    contentEl.innerHTML = `<div class="empty-state"><span class="icon">🎉</span>Заявок пока нет.</div>`;
-    return;
-  }
-  contentEl.innerHTML = orders.map(o=>{
-    const suppliersHtml = (o.suppliers||[]).map(s=>`
-      <div style="margin-bottom:8px;">
-        <div style="font-weight:700;font-size:12.5px;color:var(--espresso);">${s.name}</div>
-        <div style="font-size:12px;color:var(--espresso-soft);">${s.items}</div>
-      </div>
-    `).join('');
-    const actionsHtml = o.status==='Ожидает' ? `
-      <div id="actions_${o.id}">
-        <div style="display:flex;gap:8px;margin-top:10px;">
-          <button style="flex:1;padding:11px;border:none;border-radius:10px;background:var(--sage);color:#fff;font-weight:700;font-size:13px;cursor:pointer;" onclick="decideOrder('${o.id}','Подтверждено')">✓ Подтвердить</button>
-          <button style="flex:1;padding:11px;border:none;border-radius:10px;background:var(--alert);color:#fff;font-weight:700;font-size:13px;cursor:pointer;" onclick="showRejectReason('${o.id}')">✕ Отклонить</button>
-        </div>
-      </div>` : '';
-    const commentHtml = o.comment ? `<div style="margin-top:8px;font-size:12px;color:var(--alert);"><strong>Причина отказа:</strong> ${o.comment}</div>` : '';
-    return `
-    <div class="q-block" style="margin-bottom:14px;" id="order_${o.id}">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <span style="font-weight:700;font-size:14px;">${o.point||'—'}</span>
-        <span id="badge_${o.id}">${statusBadge(o.status)}</span>
-      </div>
-      <div style="font-size:11.5px;color:var(--espresso-soft);margin-bottom:2px;">${o.date||o.timestamp||''}</div>
-      <div style="font-size:12px;color:var(--espresso-soft);margin-bottom:10px;">Составил: ${o.author||'—'}</div>
-      ${suppliersHtml}
-      ${actionsHtml}
-      <div id="comment_${o.id}">${commentHtml}</div>
-    </div>`;
-  }).join('');
-}
-
-function showRejectReason(id){
-  const actionsEl = document.getElementById('actions_'+id);
-  if(!actionsEl) return;
-  actionsEl.innerHTML = `
-    <div class="q-block" style="margin-top:10px;padding:12px;">
-      <div class="q-text">Причина отказа</div>
-      <textarea id="rejectReason_${id}" rows="2" placeholder="Например: перебор по бюджету, продублировали заказ..."></textarea>
-      <div style="display:flex;gap:8px;margin-top:8px;">
-        <button style="flex:1;padding:10px;border:none;border-radius:10px;background:var(--alert);color:#fff;font-weight:700;font-size:13px;cursor:pointer;" onclick="decideOrder('${id}','Отклонено')">Отправить отказ</button>
-        <button class="btn-secondary" style="flex:0 0 auto;padding:10px 14px;margin-top:0;" onclick="renderApprovalsList()">Отмена</button>
-      </div>
+function renderAuditsHub(){
+  contentEl.innerHTML = `
+    <div class="item-row" onclick="openList('checklists')">
+      <div class="num">✅</div>
+      <div style="flex:1"><div class="txt">Чек-листы</div><div class="meta">4 чек-листа</div></div>
+      <div class="chev">›</div>
+    </div>
+    <div class="item-row" onclick="openList('journals')">
+      <div class="num">📖</div>
+      <div style="flex:1"><div class="txt">Журналы</div><div class="meta">Здоровье · температура · гигрометр</div></div>
+      <div class="chev">›</div>
+    </div>
+    <div class="item-row" onclick="openList('audits')">
+      <div class="num">📋</div>
+      <div style="flex:1"><div class="txt">Проверки</div><div class="meta">4 раздела аудита</div></div>
+      <div class="chev">›</div>
     </div>
   `;
 }
 
-function decideOrder(id, status){
-  const reasonEl = document.getElementById('rejectReason_'+id);
-  const comment = reasonEl ? reasonEl.value.trim() : '';
-
-  fetch(CONFIG.scriptUrl, {
-    method:'POST',
-    mode:'no-cors',
-    headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body: JSON.stringify({ action:'updateStatus', id, status, comment })
-  }).catch(err=>console.warn('Ошибка обновления статуса заявки:', err));
-
-  const badgeEl = document.getElementById('badge_'+id);
-  if(badgeEl) badgeEl.innerHTML = statusBadge(status);
-  const actionsEl = document.getElementById('actions_'+id);
-  if(actionsEl) actionsEl.remove();
-  const commentEl = document.getElementById('comment_'+id);
-  if(commentEl && comment) commentEl.innerHTML = `<div style="margin-top:8px;font-size:12px;color:var(--alert);"><strong>Причина отказа:</strong> ${comment}</div>`;
-  showToast(status==='Подтверждено' ? 'Заявка подтверждена' : 'Заявка отклонена');
+function renderReportsHub(){
+  contentEl.innerHTML = `
+    <div class="item-row" onclick="openKbDirect('employees')">
+      <div class="num">👤</div>
+      <div style="flex:1"><div class="txt">Карточка начисления</div><div class="meta">ФИО · должность · ставка</div></div>
+      <div class="chev">›</div>
+    </div>
+    <div class="item-row" onclick="openForm('timesheet','hours')">
+      <div class="num">⏱️</div>
+      <div style="flex:1"><div class="txt">Учёт рабочего времени</div><div class="meta">Учёт часов сотрудника</div></div>
+      <div class="chev">›</div>
+    </div>
+    <div class="item-row" onclick="openTrainingReport('training')">
+      <div class="num">🎓</div>
+      <div style="flex:1"><div class="txt">Учёт времени обучения</div><div class="meta">Наставник + сотрудники</div></div>
+      <div class="chev">›</div>
+    </div>
+    <div class="item-row" onclick="openShiftReport('sadovaya')">
+      <div class="num">📍</div>
+      <div style="flex:1"><div class="txt">Закрытие смены — Садовая</div><div class="meta">ежедневный отчёт</div></div>
+      <div class="chev">›</div>
+    </div>
+    <div class="item-row" onclick="openShiftReport('bogdanova')">
+      <div class="num">📍</div>
+      <div style="flex:1"><div class="txt">Закрытие смены — Богданова</div><div class="meta">ежедневный отчёт</div></div>
+      <div class="chev">›</div>
+    </div>
+  `;
 }
 
-/* ---------------- ЧАСЫ СОТРУДНИКОВ ---------------- */
+function renderKnowledgeHub(){
+  contentEl.innerHTML = `
+    <div class="item-row" onclick="openList('ttk')">
+      <div class="num">📐</div>
+      <div style="flex:1"><div class="txt">ТТК</div><div class="meta">Технологические карты</div></div>
+      <div class="chev">›</div>
+    </div>
+    <div class="item-row" onclick="openKbDirect('shelfLife')">
+      <div class="num">🌡️</div>
+      <div style="flex:1"><div class="txt">Сроки хранения</div><div class="meta">Каталог сроков годности</div></div>
+      <div class="chev">›</div>
+    </div>
+    <div class="item-row" onclick="push('product-matrix-hub')">
+      <div class="num">🧾</div>
+      <div style="flex:1"><div class="txt">Матрица продуктов</div><div class="meta">Сырьё · готовые</div></div>
+      <div class="chev">›</div>
+    </div>
+    <div class="item-row" onclick="openList('knowledge')">
+      <div class="num">📚</div>
+      <div style="flex:1"><div class="txt">Инструкции и стандарты</div><div class="meta">Управляющий · менеджер · бариста</div></div>
+      <div class="chev">›</div>
+    </div>
+  `;
+}
+
+function renderProductMatrixHub(){
+  contentEl.innerHTML = `
+    <div class="who-field" style="margin-bottom:14px;">
+      <label>Поиск</label>
+      <input type="text" id="productMatrixSearchInput" placeholder="Название товара или поставщика…" oninput="filterProductMatrix(this.value)" autocomplete="off">
+    </div>
+    <div id="productMatrixResults"></div>
+  `;
+  filterProductMatrix('');
+}
+
+function allProductMatrixSuppliers(){
+  const raw = (DATA.orderMatrix||[]).map(sup=>({sup, icon:'🧾', metaDefault: sup.categories||'Сырьё'}));
+  const ready = (DATA.orderMatrixReady||[]).map(sup=>({sup, icon:'📦', metaDefault:'Готовая продукция'}));
+  return [...raw, ...ready];
+}
+
+function filterProductMatrix(query){
+  const q = query.trim().toLowerCase();
+  const box = document.getElementById('productMatrixResults');
+  if(!box) return;
+  const all = allProductMatrixSuppliers();
+
+  if(q===''){
+    box.innerHTML = all.map(({sup,icon,metaDefault})=>`
+      <div class="item-row" onclick="openKbSection('${sup.id}')">
+        <div class="num">${icon}</div>
+        <div style="flex:1"><div class="txt">${sup.title}</div><div class="meta">${metaDefault}</div></div>
+        <div class="chev">›</div>
+      </div>`).join('');
+    return;
+  }
+
+  // Совпадения по названию поставщика
+  const supplierMatches = all.filter(({sup})=>sup.title.toLowerCase().includes(q));
+
+  // Совпадения по названию конкретного товара внутри поставщиков
+  const itemMatches = [];
+  all.forEach(({sup,icon})=>{
+    sup.articles.forEach((a,i)=>{
+      if(a.title.toLowerCase().includes(q)){
+        itemMatches.push({sup, icon, i, article:a});
+      }
+    });
+  });
+
+  if(supplierMatches.length===0 && itemMatches.length===0){
+    box.innerHTML = `<div class="empty-state"><span class="icon">🔍</span>Ничего не найдено по запросу «${query}».</div>`;
+    return;
+  }
+
+  let html = '';
+  if(supplierMatches.length>0){
+    html += `<div class="section-title">Поставщики</div>`;
+    html += supplierMatches.map(({sup,icon,metaDefault})=>`
+      <div class="item-row" onclick="openKbSection('${sup.id}')">
+        <div class="num">${icon}</div>
+        <div style="flex:1"><div class="txt">${sup.title}</div><div class="meta">${metaDefault}</div></div>
+        <div class="chev">›</div>
+      </div>`).join('');
+  }
+  if(itemMatches.length>0){
+    html += `<div class="section-title">Товары</div>`;
+    html += itemMatches.map(m=>`
+      <div class="item-row" onclick="openKbArticleByIndex('${m.sup.id}',${m.i})">
+        <div class="num">${m.icon}</div>
+        <div style="flex:1"><div class="txt">${m.article.title}</div><div class="meta">Поставщик: ${m.sup.title}</div></div>
+        <div class="chev">›</div>
+      </div>`).join('');
+  }
+  box.innerHTML = html;
+}
 
 function renderEmployeeHours(){
   if(!CONFIG.scriptUrl){
