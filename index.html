@@ -3437,6 +3437,10 @@ function renderEmployeeHoursData(employees){
         <span>Итого</span>
         <span style="font-family:'JetBrains Mono',monospace;color:var(--sage-dark);">${emp.total}</span>
       </div>
+      <div style="display:flex;justify-content:space-between;padding-top:6px;font-size:14px;font-weight:700;">
+        <span>Итого к оплате</span>
+        <span style="font-family:'JetBrains Mono',monospace;color:var(--copper-dark);">${emp.salary} ₽</span>
+      </div>
     </div>`;
   }).join('');
 }
