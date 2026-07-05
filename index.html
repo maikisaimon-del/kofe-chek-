@@ -1006,6 +1006,24 @@ const DATA = {
     }
   ],
 
+  employees: {
+    id:'employees', title:'Сотрудники',
+    articles:[
+      {title:'Кириллов Юрий Александрович', body:'<p><strong>ФИО:</strong> Кириллов Юрий Александрович</p><p><strong>Должность:</strong> Бариста</p><p><strong>Ставка:</strong> 260 рублей/час</p>'},
+      {title:'Решетникова Кира Евгеньевна', body:'<p><strong>ФИО:</strong> Решетникова Кира Евгеньевна</p><p><strong>Должность:</strong> Бариста</p><p><strong>Ставка:</strong> 260 рублей/час</p>'},
+      {title:'Дудинова Юлия Сергеевна', body:'<p><strong>ФИО:</strong> Дудинова Юлия Сергеевна</p><p><strong>Должность:</strong> Бариста</p><p><strong>Ставка:</strong> 260 рублей/час</p>'},
+      {title:'Калабухова Наталья Викторовна', body:'<p><strong>ФИО:</strong> Калабухова Наталья Викторовна</p><p><strong>Должность:</strong> Бариста</p><p><strong>Ставка:</strong> 260 рублей/час</p>'},
+      {title:'Корнеева Мария Александровна', body:'<p><strong>ФИО:</strong> Корнеева Мария Александровна</p><p><strong>Должность:</strong> Бариста</p><p><strong>Ставка:</strong> 260 рублей/час</p>'},
+      {title:'Наминасенко Ирина Дмитриевна', body:'<p><strong>ФИО:</strong> Наминасенко Ирина Дмитриевна</p><p><strong>Должность:</strong> Бариста</p><p><strong>Ставка:</strong> 260 рублей/час</p>'},
+      {title:'Ермолаев Богдан Юрьевич', body:'<p><strong>ФИО:</strong> Ермолаев Богдан Юрьевич</p><p><strong>Должность:</strong> Бариста</p><p><strong>Ставка:</strong> 260 рублей/час</p>'},
+      {title:'Прокопенко Владислав Александрович', body:'<p><strong>ФИО:</strong> Прокопенко Владислав Александрович</p><p><strong>Должность:</strong> Бариста</p><p><strong>Ставка:</strong> 260 рублей/час</p>'},
+      {title:'Слива Екатерина Андреевна', body:'<p><strong>ФИО:</strong> Слива Екатерина Андреевна</p><p><strong>Должность:</strong> Бариста</p><p><strong>Ставка:</strong> 260 рублей/час</p>'},
+      {title:'Шпорт Анна Игоревна', body:'<p><strong>ФИО:</strong> Шпорт Анна Игоревна</p><p><strong>Должность:</strong> Бариста</p><p><strong>Ставка:</strong> 260 рублей/час</p>'},
+      {title:'Фонякова Екатерина Александровна', body:'<p><strong>ФИО:</strong> Фонякова Екатерина Александровна</p><p><strong>Должность:</strong> Бариста</p><p><strong>Ставка:</strong> 260 рублей/час</p>'},
+      {title:'Стажёр', body:'<p><strong>ФИО:</strong> Стажёр</p><p><strong>Должность:</strong> Бариста</p><p><strong>Ставка:</strong> 260 рублей/час</p>'}
+    ]
+  },
+
   shelfLife: {
     id:'shelf-life', title:'Сроки хранения',
     articles:[]
@@ -1629,6 +1647,7 @@ function renderHome(){
       ${catCard('⏱️','Учёт рабочего времени','Учёт часов сотрудника →','openList','timesheet')}
       ${catCard('📊','Часы сотрудников','Сводка смен и часов по каждому →','push','employee-hours')}
       ${catCard('🎓','Учёт времени обучения','Наставник + сотрудники →','openList','trainingTime')}
+      ${catCard('👤','Сотрудники','ФИО · должность · ставка →','openKbDirect','employees')}
     </div>
 
     <div class="section-title">База знаний</div>
@@ -3193,8 +3212,9 @@ function renderKbList(kb){
   }
   kb.articles.forEach((a,i)=>{
     const plain = a.body.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+    const displayTitle = kb.id==='employees' ? a.title.split(' ')[0] : a.title;
     html += `<div class="kb-article" onclick="openKbArticleByIndex('${kb.id}',${i})">
-      <strong>${a.title}</strong><span>${plain.slice(0,70)}…</span>
+      <strong>${displayTitle}</strong><span>${plain.slice(0,70)}…</span>
     </div>`;
   });
   contentEl.innerHTML = html;
