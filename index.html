@@ -1591,6 +1591,7 @@ function render(){
     case 'order-sheet-search': title='Лист заявки'; sub='Найдите позиции и отметьте нужные'; renderOrderSheetSearch(); break;
     case 'order-sheet-summary': title='Заявка'; sub='Список по поставщикам'; renderOrderSheetSummary(); break;
     case 'approvals-list': title='Согласование заявок'; sub='Ожидают решения управляющего'; renderApprovalsList(); break;
+    case 'employee-hours': title='Часы сотрудников'; sub='Смены и часы по каждому сотруднику'; renderEmployeeHours(); break;
     case 'shift-report-result': title=''; renderShiftReportResult(top.params); break;
     case 'kb-article': title = top.params.article.title; sub=''; renderKbArticle(top.params); break;
     case 'feedback': title = 'Обратная связь'; sub='Ваши идеи и замечания'; renderFeedback(); break;
@@ -1626,6 +1627,7 @@ function renderHome(){
     <div class="card-grid">
       ${catCard('📊','Закрывающие отчёты','2 отчёта →','openList','reports')}
       ${catCard('⏱️','Учёт рабочего времени','Учёт часов сотрудника →','openList','timesheet')}
+      ${catCard('📊','Часы сотрудников','Сводка смен и часов по каждому →','push','employee-hours')}
       ${catCard('🎓','Учёт времени обучения','Наставник + сотрудники →','openList','trainingTime')}
     </div>
 
@@ -3393,6 +3395,50 @@ function decideOrder(id, status){
   const commentEl = document.getElementById('comment_'+id);
   if(commentEl && comment) commentEl.innerHTML = `<div style="margin-top:8px;font-size:12px;color:var(--alert);"><strong>Причина отказа:</strong> ${comment}</div>`;
   showToast(status==='Подтверждено' ? 'Заявка подтверждена' : 'Заявка отклонена');
+}
+
+/* ---------------- ЧАСЫ СОТРУДНИКОВ ---------------- */
+
+function renderEmployeeHours(){
+  if(!CONFIG.scriptUrl){
+    contentEl.innerHTML = `<div class="empty-state"><span class="icon">⚙️</span>Сначала подключите Google Таблицу в Настройках.</div>`;
+    return;
+  }
+  contentEl.innerHTML = `<div class="empty-state"><span class="icon">⏳</span>Загружаем данные…</div>`;
+
+  fetch(CONFIG.scriptUrl + '?action=timesheetSummary')
+    .then(r=>r.json())
+    .then(data=>{
+      if(data.status!=='ok'){ throw new Error(data.message||'Ошибка'); }
+      renderEmployeeHoursData(data.employees||[]);
+    })
+    .catch(err=>{
+      contentEl.innerHTML = `<div class="empty-state"><span class="icon">⚠️</span>Не удалось загрузить данные.<br><span style="font-size:11px;">${err}</span></div>`;
+    });
+}
+
+function renderEmployeeHoursData(employees){
+  if(employees.length===0){
+    contentEl.innerHTML = `<div class="empty-state"><span class="icon">🗒️</span>Записей пока нет.<br>Заполните «Учёт рабочего времени» — карточки появятся здесь.</div>`;
+    return;
+  }
+  contentEl.innerHTML = employees.map(emp=>{
+    const shiftsHtml = emp.shifts.map(s=>`
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;">
+        <span>${s.date||'—'} · ${s.point||'—'} · ${s.start||'?'}–${s.end||'?'}</span>
+        <span style="font-family:'JetBrains Mono',monospace;color:var(--espresso-soft);white-space:nowrap;">${s.hours||'—'}</span>
+      </div>
+    `).join('');
+    return `
+    <div class="q-block" style="margin-bottom:14px;">
+      <div style="font-weight:700;font-size:15px;margin-bottom:8px;">${emp.name}</div>
+      ${shiftsHtml}
+      <div style="display:flex;justify-content:space-between;padding-top:10px;font-size:14px;font-weight:700;">
+        <span>Итого</span>
+        <span style="font-family:'JetBrains Mono',monospace;color:var(--sage-dark);">${emp.total}</span>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function sendToSheet(payload){
