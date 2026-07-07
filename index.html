@@ -1771,7 +1771,10 @@ function renderForm(params){
       } else if(q.type==='textarea'){
         inputHtml = `<textarea rows="3" oninput="setAns('${q.id}',this.value)" placeholder="Комментарий..."></textarea>`;
       } else if(q.type==='select-name'){
-        inputHtml = `<select oninput="setAns('${q.id}',this.value)" onchange="setAns('${q.id}',this.value)">${nameSelectOptions('')}</select>`;
+        inputHtml = `<select onchange="onSelectNameChange('${q.id}',this.value)">${nameSelectOptions('')}</select>
+          <div id="internName_${q.id}" style="display:none;margin-top:10px;">
+            <input type="text" placeholder="ФИО стажёра" oninput="setAns('${q.id}',this.value)">
+          </div>`;
       } else if(q.type==='select' && q.options){
         inputHtml = `<select oninput="setAns('${q.id}',this.value)" onchange="setAns('${q.id}',this.value)"><option value="" selected disabled>Выберите</option>${q.options.map(o=>`<option value="${o}">${o}</option>`).join('')}</select>`;
       } else {
@@ -1849,6 +1852,22 @@ function renderQuestion(q){
   // text
   return `<div class="q-block"><div class="q-text">${q.text}</div>
     <textarea rows="2" oninput="setAns('${q.id}',this.value)" placeholder="Комментарий..."></textarea></div>`;
+}
+
+function onSelectNameChange(id, value){
+  const box = document.getElementById('internName_'+id);
+  if(value==='Стажёр'){
+    if(box){
+      box.style.display = 'block';
+      currentAnswers[id] = ''; // ждём реального имени, пока не заполнено — не готово
+    }
+  } else {
+    if(box){
+      box.style.display = 'none';
+      box.querySelector('input').value = '';
+    }
+    setAns(id, value);
+  }
 }
 
 function setAns(id, value, el){
