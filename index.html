@@ -659,7 +659,7 @@ const DATA = {
       scored:true,
       resultLabel:'Результат чек-листа открытия',
       hasBaristaSplit:false,
-      headerFields:[ {id:'Дата', label:'Дата'}, {id:'Смена/сотрудник', label:'Смена / сотрудник'} ],
+      headerFields:[ {id:'Дата', label:'Дата'}, {id:'Кофейня', label:'Кофейня', type:'select', options:['Садовая','Богданова']}, {id:'Сотрудник', label:'Сотрудник', type:'staff-multi'} ],
       grading:[ {min:90, label:'Хорошо', color:'var(--sage)'}, {min:85, label:'Удовлетворительно', color:'var(--copper)'}, {min:0, label:'Плохо', color:'var(--alert)'} ],
       questions:[
         yn('o1','Техника и помещение','Включить свет на сытной и десертной витринах', false, false, 4),
@@ -689,7 +689,7 @@ const DATA = {
       scored:true,
       resultLabel:'Результат чек-листа за смену',
       hasBaristaSplit:false,
-      headerFields:[ {id:'Дата', label:'Дата'}, {id:'Смена/сотрудник', label:'Смена / сотрудник'} ],
+      headerFields:[ {id:'Дата', label:'Дата'}, {id:'Кофейня', label:'Кофейня', type:'select', options:['Садовая','Богданова']}, {id:'Сотрудник', label:'Сотрудник', type:'staff-multi'} ],
       grading:[ {min:90, label:'Хорошо', color:'var(--sage)'}, {min:85, label:'Удовлетворительно', color:'var(--copper)'}, {min:0, label:'Плохо', color:'var(--alert)'} ],
       questions:[
         yn('d1','Ежедневно, в течение смены','Проверить размороженные пюре; при необходимости выставить на дефрост', false, false, 8),
@@ -715,7 +715,7 @@ const DATA = {
       scored:true,
       resultLabel:'Результат чек-листа закрытия',
       hasBaristaSplit:false,
-      headerFields:[ {id:'Дата', label:'Дата'}, {id:'Смена/сотрудник', label:'Смена / сотрудник'} ],
+      headerFields:[ {id:'Дата', label:'Дата'}, {id:'Кофейня', label:'Кофейня', type:'select', options:['Садовая','Богданова']}, {id:'Сотрудник', label:'Сотрудник', type:'staff-multi'} ],
       grading:[ {min:90, label:'Хорошо', color:'var(--sage)'}, {min:85, label:'Удовлетворительно', color:'var(--copper)'}, {min:0, label:'Плохо', color:'var(--alert)'} ],
       questions:[
         yn('cl1','Бар / холодная зона','Занести летнюю вывеску (штендер)', false, false, 2),
@@ -763,6 +763,7 @@ const DATA = {
     {
       id:'variable', icon:'🔀', title:'Переменный чек-лист',
       meta:'ротация · 6 пунктов на неделю',
+      headerFields:[ {id:'Дата', label:'Дата'}, {id:'Кофейня', label:'Кофейня', type:'select', options:['Садовая','Богданова']}, {id:'Сотрудник', label:'Сотрудник', type:'staff-multi'} ],
       questions:[
         yn('v1','Эта неделя','Проверена чистота вентиляционных решёток'),
         yn('v2','Эта неделя','Проверены сроки годности сиропов и топпингов'),
@@ -1025,6 +1026,21 @@ const DATA = {
 
   shelfLife: {
     id:'shelf-life', title:'Сроки хранения',
+    articles:[]
+  },
+
+  readyReports: {
+    id:'ready-reports', title:'Готовая отчётность',
+    articles:[]
+  },
+
+  readyJournalsBogdanova: {
+    id:'ready-journals-bogdanova', title:'Богданова',
+    articles:[]
+  },
+
+  readyJournalsSadovaya: {
+    id:'ready-journals-sadovaya', title:'Садовая',
     articles:[]
   },
 
@@ -1612,6 +1628,10 @@ function render(){
     case 'reports-hub': title='Отчёты'; sub='Выберите раздел'; renderReportsHub(); break;
     case 'employees-list': title='Сотрудники'; sub=''; renderEmployeesList(); break;
     case 'knowledge-hub': title='База знаний'; sub='Выберите раздел'; renderKnowledgeHub(); break;
+    case 'ready-reports-hub': title='Готовая отчётность'; sub='Выберите раздел'; renderReadyReportsHub(); break;
+    case 'ready-journals-hub': title='Журналы'; sub='Выберите точку'; renderReadyJournalsHub(); break;
+    case 'ready-journal-point': title='Журналы — '+top.params.point; sub='Выберите журнал'; renderReadyJournalPoint(top.params.point); break;
+    case 'ready-journal-type': title=JOURNAL_TYPE_LABELS[top.params.type]+' — '+top.params.point; sub='Отчёты о заполнении'; renderReadyJournalType(top.params.point, top.params.type); break;
     case 'product-matrix-hub': title='Матрица продуктов'; sub='Сырьё или готовая продукция'; renderProductMatrixHub(); break;
     case 'shift-report-result': title=''; renderShiftReportResult(top.params); break;
     case 'kb-article': title = top.params.article.title; sub=''; renderKbArticle(top.params); break;
@@ -1648,6 +1668,10 @@ function renderHome(){
 
     <div class="card-grid">
       ${catCard('📚','База знаний','ТТК · сроки · матрицы · стандарты →','push','knowledge-hub')}
+    </div>
+
+    <div class="card-grid">
+      ${catCard('🗂️','Готовая отчётность','Журналы →','push','ready-reports-hub')}
     </div>
 
     <div class="feedback-strip" onclick="openOrderSheet()">
@@ -1750,6 +1774,8 @@ function openForm(section, id){
   const item = findById(DATA[section], id);
   currentAnswers = {};
   currentPhotos = {};
+  currentComments = {};
+  checklistStaffRows = {};
   push('form', {section, item});
 }
 
@@ -1793,8 +1819,27 @@ function renderForm(params){
   const total = item.questions.length;
 
   const headerHtml = item.headerFields ? item.headerFields.map(f=>{
-    const isDate = f.id.includes('Дата') || f.label.includes('Дата');
+    const isDate = f.type!=='select' && f.type!=='staff-multi' && (f.id.includes('Дата') || f.label.includes('Дата'));
     if(isDate) currentAnswers[f.id] = nowDateStr();
+
+    if(f.type==='select' && f.options){
+      return `
+      <div class="who-field">
+        <label>${f.label}</label>
+        <select onchange="currentAnswers['${f.id}']=this.value">
+          <option value="" selected disabled>Выберите</option>
+          ${f.options.map(o=>`<option value="${o}">${o}</option>`).join('')}
+        </select>
+      </div>`;
+    }
+    if(f.type==='staff-multi'){
+      return `
+      <div class="who-field">
+        <label>${f.label}</label>
+        <div id="staffMultiWrap_${f.id}"></div>
+        <button type="button" class="btn-secondary" style="margin-top:8px;" onclick="addChecklistStaffRow('${f.id}')">+ Добавить сотрудника</button>
+      </div>`;
+    }
     return `
     <div class="who-field">
       <label>${f.label}</label>
@@ -1818,6 +1863,14 @@ function renderForm(params){
       <button class="btn-primary" onclick="submitForm()">Отправить в Google Таблицу</button>
     </div>
   `;
+  if(item.headerFields){
+    item.headerFields.forEach(f=>{
+      if(f.type==='staff-multi'){
+        checklistStaffRows[f.id] = [''];
+        renderChecklistStaffRows(f.id);
+      }
+    });
+  }
   updateProgress();
 }
 
@@ -1870,6 +1923,43 @@ function onSelectNameChange(id, value){
   }
 }
 
+let currentComments = {}; // id -> текст комментария к нарушению (обязателен в чек-листах)
+let checklistStaffRows = {}; // fieldId -> [names]
+
+function renderChecklistStaffRows(fieldId){
+  const wrap = document.getElementById('staffMultiWrap_'+fieldId);
+  if(!wrap) return;
+  const rows = checklistStaffRows[fieldId] || [''];
+  wrap.innerHTML = rows.map((name,i)=>`
+    <div style="display:flex;gap:8px;align-items:center;margin-top:${i>0?'8px':'0'};">
+      <select style="flex:1;" onchange="setChecklistStaffRow('${fieldId}',${i},this.value)">${nameSelectOptions(name)}</select>
+      ${rows.length>1?`<span style="color:var(--alert);font-weight:700;cursor:pointer;flex:0 0 auto;" onclick="removeChecklistStaffRow('${fieldId}',${i})">✕</span>`:''}
+    </div>
+  `).join('');
+  updateChecklistStaffAnswer(fieldId);
+}
+
+function setChecklistStaffRow(fieldId, i, value){
+  checklistStaffRows[fieldId][i] = value;
+  updateChecklistStaffAnswer(fieldId);
+}
+
+function addChecklistStaffRow(fieldId){
+  if(!checklistStaffRows[fieldId]) checklistStaffRows[fieldId] = [''];
+  checklistStaffRows[fieldId].push('');
+  renderChecklistStaffRows(fieldId);
+}
+
+function removeChecklistStaffRow(fieldId, i){
+  checklistStaffRows[fieldId].splice(i,1);
+  renderChecklistStaffRows(fieldId);
+}
+
+function updateChecklistStaffAnswer(fieldId){
+  const names = (checklistStaffRows[fieldId]||[]).filter(n=>n && n.trim());
+  currentAnswers[fieldId] = names.join(', ');
+}
+
 function setAns(id, value, el){
   currentAnswers[id] = value;
   if(el && el.parentElement.classList.contains('yesno-row')){
@@ -1881,16 +1971,23 @@ function setAns(id, value, el){
     el.classList.add('active');
   }
   const top = stack[stack.length-1];
+  const section = top && top.params ? top.params.section : null;
   const q = (top && top.params && top.params.item) ? top.params.item.questions.find(x=>x.id===id) : null;
   const zone = document.getElementById('photozone_'+id);
   if(zone && q && q.type==='yesno' && !q.alwaysPhoto){
     if(value==='Нет'){
       zone.style.display = 'block';
-      zone.innerHTML = renderMediaZoneHtml(id,'image');
+      const needsComment = section==='checklists';
+      const commentHtml = needsComment ? `
+        <div style="margin-top:10px;">
+          <textarea rows="2" placeholder="Комментарий к нарушению (обязательно)" oninput="currentComments['${id}']=this.value" style="width:100%;">${currentComments[id]||''}</textarea>
+        </div>` : '';
+      zone.innerHTML = renderMediaZoneHtml(id,'image') + commentHtml;
     } else {
       zone.style.display = 'none';
       zone.innerHTML = '';
       delete currentPhotos[id];
+      delete currentComments[id];
     }
   }
   updateProgress();
@@ -1999,6 +2096,25 @@ function submitForm(){
     }
   }
 
+  if(section==='checklists'){
+    for(const q of item.questions){
+      if(q.type==='yesno' && currentAnswers[q.id]==='Нет'){
+        if(!currentComments[q.id] || !currentComments[q.id].trim()){
+          showToast('Добавьте комментарий к нарушению: «'+q.text.slice(0,40)+(q.text.length>40?'…':'')+'»');
+          return;
+        }
+      }
+    }
+  }
+
+  if(section==='checklists' && Object.keys(currentComments).length>0){
+    currentAnswers['Комментарии к нарушениям'] = Object.keys(currentComments)
+      .map(qid=>{
+        const q = item.questions.find(x=>x.id===qid);
+        return (q?q.text:qid) + ' — ' + currentComments[qid];
+      }).join('; ');
+  }
+
   const photosArr = Object.keys(currentPhotos).map(id=>({
     questionId:id, text: currentPhotos[id].text, dataUrl: currentPhotos[id].dataUrl,
     kind: currentPhotos[id].kind||'image', mime: currentPhotos[id].mime||'image/jpeg'
@@ -2047,7 +2163,7 @@ function computeScores(item, answers){
         overallYesW += w;
         if(q.barista) baristaYesW += w;
       } else {
-        violations.push({ text:q.text, cat:q.cat, hasPhoto: !!currentPhotos[q.id], points: w });
+        violations.push({ text:q.text, cat:q.cat, hasPhoto: !!currentPhotos[q.id], points: w, comment: currentComments[q.id]||'' });
       }
     }
   });
@@ -2104,6 +2220,7 @@ function renderAuditResult(params){
       return `<div class="entry-card">
         <div class="row1" style="color:var(--alert)">⚠️ ${v.cat}${v.points!==1?` <span style="font-family:'JetBrains Mono',monospace;font-weight:700;">−${v.points}</span>`:''}</div>
         <div class="row2">${v.text}</div>
+        ${v.comment ? `<div class="row2" style="font-style:italic;margin-top:4px;">«${v.comment}»</div>` : ''}
         ${photo ? `<img src="${photo.dataUrl}" style="width:100%;max-width:220px;border-radius:10px;margin-top:8px;">` : ''}
       </div>`;
     }).join('');
@@ -3259,7 +3376,10 @@ function openKbArticleByIndex(kbId, i){
   }
   const kb = findById(DATA.knowledge, kbId) || findById(DATA.ttk, kbId) || findById(DATA.orderMatrix, kbId) || findById(DATA.orderMatrixReady, kbId)
     || (DATA.shelfLife.id===kbId ? DATA.shelfLife : null)
-    || (DATA.employees.id===kbId ? DATA.employees : null);
+    || (DATA.employees.id===kbId ? DATA.employees : null)
+    || (DATA.readyReports.id===kbId ? DATA.readyReports : null)
+    || (DATA.readyJournalsBogdanova.id===kbId ? DATA.readyJournalsBogdanova : null)
+    || (DATA.readyJournalsSadovaya.id===kbId ? DATA.readyJournalsSadovaya : null);
   if(!kb){ console.warn('Каталог не найден для kbId:', kbId); return; }
   push('kb-article', {article: kb.articles[i]});
 }
@@ -3460,6 +3580,114 @@ function renderReportsHub(){
     <div class="item-row" onclick="openShiftReport('bogdanova')">
       <div class="num">📍</div>
       <div style="flex:1"><div class="txt">Закрытие смены — Богданова</div><div class="meta">ежедневный отчёт</div></div>
+      <div class="chev">›</div>
+    </div>
+  `;
+}
+
+function renderReadyReportsHub(){
+  contentEl.innerHTML = `
+    <div class="item-row" onclick="push('ready-journals-hub')">
+      <div class="num">📖</div>
+      <div style="flex:1"><div class="txt">Журналы</div><div class="meta">Богданова · Садовая</div></div>
+      <div class="chev">›</div>
+    </div>
+  `;
+}
+
+const JOURNAL_TYPE_LABELS = {
+  health: 'Журнал здоровья',
+  temperature: 'Журнал температурного режима',
+  hygrometer: 'Журнал гигрометра'
+};
+
+function renderReadyJournalPoint(point){
+  contentEl.innerHTML = `
+    <div class="item-row" onclick="push('ready-journal-type',{point:'${point}',type:'health'})">
+      <div class="num">🩺</div>
+      <div style="flex:1"><div class="txt">Журнал здоровья</div></div>
+      <div class="chev">›</div>
+    </div>
+    <div class="item-row" onclick="push('ready-journal-type',{point:'${point}',type:'temperature'})">
+      <div class="num">🌡️</div>
+      <div style="flex:1"><div class="txt">Журнал температурного режима</div></div>
+      <div class="chev">›</div>
+    </div>
+    <div class="item-row" onclick="push('ready-journal-type',{point:'${point}',type:'hygrometer'})">
+      <div class="num">💧</div>
+      <div style="flex:1"><div class="txt">Журнал гигрометра</div></div>
+      <div class="chev">›</div>
+    </div>
+  `;
+}
+
+function renderReadyJournalType(point, type){
+  contentEl.innerHTML = `<div class="empty-state"><span class="icon">⏳</span>Загружаем…</div>`;
+  if(!CONFIG.scriptUrl){
+    contentEl.innerHTML = `<div class="empty-state"><span class="icon">⚙️</span>Подключите Google Таблицу в Настройках.</div>`;
+    return;
+  }
+  fetch(CONFIG.scriptUrl + '?action=journalReport&type=' + type + '&point=' + encodeURIComponent(point))
+    .then(r=>r.json())
+    .then(data=>{
+      if(data.status!=='ok') throw new Error(data.message||'Ошибка');
+      renderJournalReportEntriesFull(type, point, data.entries||[]);
+    })
+    .catch(err=>{
+      contentEl.innerHTML = `<div class="empty-state"><span class="icon">⚠️</span>Не удалось загрузить.<br><span style="font-size:11px;">${err}</span></div>`;
+    });
+}
+
+function renderJournalReportEntriesFull(type, point, entries){
+  if(entries.length===0){
+    contentEl.innerHTML = `<div class="empty-state"><span class="icon">🗒️</span>Записей пока нет.</div>`;
+    return;
+  }
+
+  contentEl.innerHTML = entries.map(entry=>{
+    const dateVal = entry['Дата'] || '—';
+    let bodyHtml = '';
+
+    if(type==='health'){
+      const staffHtml = Object.keys(entry)
+        .filter(k=>k.indexOf('Сотрудник')===0)
+        .map(k=>{
+          const val = String(entry[k]);
+          const isSick = val.indexOf('Нет')!==-1 || val.toLowerCase().indexOf('жалоб')!==-1;
+          return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px;">
+            <span>${val.split(' — ')[0]}</span>
+            <span style="font-weight:700;color:${isSick?'var(--alert)':'var(--sage-dark)'};">${isSick?'Жалобы':'Здоров'}</span>
+          </div>`;
+        }).join('');
+      bodyHtml = staffHtml || '<div class="empty-state" style="padding:14px;">Нет данных по сотрудникам</div>';
+    } else {
+      bodyHtml = Object.keys(entry)
+        .filter(k=>k!=='Дата и время' && k!=='Сотрудник')
+        .map(k=>`<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12.5px;">
+          <span style="color:var(--espresso-soft);">${k}</span><span style="font-weight:600;">${entry[k]}</span>
+        </div>`).join('');
+    }
+
+    return `<div class="q-block" style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+        <span style="font-weight:700;">Кофейня ${point}</span>
+        <span style="font-size:12px;color:var(--espresso-soft);">${dateVal}</span>
+      </div>
+      ${bodyHtml}
+    </div>`;
+  }).join('');
+}
+
+function renderReadyJournalsHub(){
+  contentEl.innerHTML = `
+    <div class="item-row" onclick="push('ready-journal-point',{point:'Богданова'})">
+      <div class="num">📍</div>
+      <div style="flex:1"><div class="txt">Богданова</div></div>
+      <div class="chev">›</div>
+    </div>
+    <div class="item-row" onclick="push('ready-journal-point',{point:'Садовая'})">
+      <div class="num">📍</div>
+      <div style="flex:1"><div class="txt">Садовая</div></div>
       <div class="chev">›</div>
     </div>
   `;
