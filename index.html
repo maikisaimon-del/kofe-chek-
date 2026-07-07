@@ -3664,7 +3664,7 @@ function renderJournalReportEntriesFull(type, point, entries){
       bodyHtml = staffHtml || '<div class="empty-state" style="padding:14px;">Нет данных по сотрудникам</div>';
     } else {
       bodyHtml = Object.keys(entry)
-        .filter(k=>k!=='Дата и время' && k!=='Сотрудник' && k!=='Дата')
+        .filter(k=>k!=='Дата и время' && k!=='Сотрудник' && k!=='Дата' && entry[k]!==undefined && entry[k]!==null && String(entry[k]).trim()!=='')
         .map(k=>`<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12.5px;">
           <span style="color:var(--espresso-soft);">${k}</span><span style="font-weight:600;">${entry[k]}</span>
         </div>`).join('');
