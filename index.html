@@ -1610,6 +1610,7 @@ function render(){
     case 'employee-hours': title='Часы сотрудников'; sub='Смены и часы по каждому сотруднику'; renderEmployeeHours(); break;
     case 'audits-hub': title='Аудиты/Ежедневки'; sub='Выберите раздел'; renderAuditsHub(); break;
     case 'reports-hub': title='Отчёты'; sub='Выберите раздел'; renderReportsHub(); break;
+    case 'employees-list': title='Сотрудники'; sub=''; renderEmployeesList(); break;
     case 'knowledge-hub': title='База знаний'; sub='Выберите раздел'; renderKnowledgeHub(); break;
     case 'product-matrix-hub': title='Матрица продуктов'; sub='Сырьё или готовая продукция'; renderProductMatrixHub(); break;
     case 'shift-report-result': title=''; renderShiftReportResult(top.params); break;
@@ -2521,7 +2522,7 @@ function hoursMinutesBetween(startVal, endVal){
 
 function openTrainingReport(id){
   const item = findById(DATA.trainingTime, id);
-  trainingRows = [{ name:'', point:'', start:'', end:'' }];
+  trainingRows = [{ name:'', selectedStaff:'', realName:'', point:'', start:'', end:'' }];
   push('training-report', {item, mentor:''});
 }
 
@@ -2548,10 +2549,16 @@ function renderTrainingRows(){
   if(!wrap) return;
   wrap.innerHTML = trainingRows.map((row,i)=>{
     const hrs = hoursMinutesBetween(row.start, row.end);
+    const isIntern = row.selectedStaff==='Стажёр';
     return `
     <div class="q-block">
       <div class="q-text">Сотрудник ${i+1}${trainingRows.length>1?` <span style="float:right;color:var(--alert);font-weight:600;cursor:pointer;" onclick="removeTrainingRow(${i})">Удалить ✕</span>`:''}</div>
-      <input type="text" placeholder="ФИО сотрудника" value="${row.name}" oninput="trainingRows[${i}].name=this.value" style="margin-bottom:10px;">
+      <select onchange="setTrainingStaff(${i},this.value)" style="margin-bottom:10px;">${nameSelectOptions(row.selectedStaff)}</select>
+      ${isIntern ? `
+      <div class="who-field" style="margin-bottom:10px;">
+        <label>Заполните имя (ФИО стажёра)</label>
+        <input type="text" placeholder="ФИО стажёра" value="${row.realName||''}" oninput="trainingRows[${i}].realName=this.value; trainingRows[${i}].name=this.value;">
+      </div>` : ''}
       <select onchange="trainingRows[${i}].point=this.value" style="margin-bottom:10px;">
         <option value="" ${!row.point?'selected':''} disabled>Точка</option>
         <option value="Садовая" ${row.point==='Садовая'?'selected':''}>Садовая</option>
@@ -2574,8 +2581,19 @@ function renderTrainingRows(){
   }).join('');
 }
 
+function setTrainingStaff(i, value){
+  trainingRows[i].selectedStaff = value;
+  if(value==='Стажёр'){
+    trainingRows[i].name = trainingRows[i].realName || '';
+  } else {
+    trainingRows[i].name = value;
+    trainingRows[i].realName = '';
+  }
+  renderTrainingRows();
+}
+
 function addTrainingRow(){
-  trainingRows.push({ name:'', point:'', start:'', end:'' });
+  trainingRows.push({ name:'', selectedStaff:'', realName:'', point:'', start:'', end:'' });
   renderTrainingRows();
 }
 
@@ -2599,6 +2617,14 @@ function submitTrainingReport(){
   }
   for(let i=0;i<trainingRows.length;i++){
     const r = trainingRows[i];
+    if(!r.selectedStaff){
+      showToast('Выберите сотрудника в строке '+(i+1));
+      return;
+    }
+    if(r.selectedStaff==='Стажёр' && !r.realName){
+      showToast('Заполните ФИО стажёра в строке '+(i+1));
+      return;
+    }
     if(!r.name || !r.point || !r.start || !r.end){
       showToast('Заполните все поля для сотрудника '+(i+1));
       return;
@@ -3132,6 +3158,44 @@ function submitOrderSheet(){
   push('success', {label:'Заявка'});
 }
 
+function openEmployeesList(){
+  push('employees-list', {});
+}
+
+function renderEmployeesList(){
+  let html = DATA.employees.articles.map((a,i)=>`
+    <div class="kb-article" onclick="openKbArticleByIndex('employees',${i})">
+      <strong>${a.title}</strong>
+    </div>
+  `).join('');
+  html += `<div id="extraEmployeesBox"></div>`;
+  contentEl.innerHTML = html;
+
+  if(!CONFIG.scriptUrl) return;
+  fetch(CONFIG.scriptUrl + '?action=extraEmployees')
+    .then(r=>r.json())
+    .then(data=>{
+      if(data.status!=='ok' || !data.names || data.names.length===0) return;
+      const box = document.getElementById('extraEmployeesBox');
+      if(!box) return;
+      box.innerHTML = data.names.map(name=>`
+        <div class="kb-article" onclick="openNewTraineeDetail('${esc4js(name)}')">
+          <strong>${name}</strong><span>Стажёр бариста · 220 ₽/час</span>
+        </div>
+      `).join('');
+    })
+    .catch(err=>console.warn('Не удалось загрузить новых сотрудников:', err));
+}
+
+function openNewTraineeDetail(name){
+  push('employee-detail', {
+    article: {
+      title: name,
+      body: `<p><strong>ФИО:</strong> ${name}</p><p><strong>Должность:</strong> Стажёр бариста</p><p><strong>Ставка:</strong> 220 рублей/час</p>`
+    }
+  });
+}
+
 function openKbDirect(key){
   push('kb-list', {kb: DATA[key]});
 }
@@ -3354,7 +3418,7 @@ function renderAuditsHub(){
 
 function renderReportsHub(){
   contentEl.innerHTML = `
-    <div class="item-row" onclick="openKbDirect('employees')">
+    <div class="item-row" onclick="openEmployeesList()">
       <div class="num">👤</div>
       <div style="flex:1"><div class="txt">Карточка начисления</div><div class="meta">ФИО · должность · ставка</div></div>
       <div class="chev">›</div>
