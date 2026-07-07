@@ -2359,19 +2359,21 @@ function renderJournalAdd(params){
 function submitJournal(){
   const top = stack[stack.length-1];
   const {journal, scopeKey, scopeTitle} = top.params;
-  const entry = { _time: new Date().toLocaleString('ru-RU') };
+  const localEntry = { _time: new Date().toLocaleString('ru-RU') };
+  const answers = {};
   let allFilled = true;
   journal.fields.forEach(f=>{
     const el = document.getElementById('jf_'+f.id);
-    entry[f.id] = el.value;
+    localEntry[f.id] = el.value;
+    answers[f.label] = el.value;
     if(!el.value || !el.value.trim()) allFilled = false;
   });
   if(!allFilled){
     showToast('Заполните все поля перед сохранением');
     return;
   }
-  getJournalEntries(scopeKey).push(entry);
-  sendToSheet({type:'journal', title: scopeTitle||journal.title, timestamp:entry._time, answers:entry});
+  getJournalEntries(scopeKey).push(localEntry);
+  sendToSheet({type:'journal', title: scopeTitle||journal.title, timestamp: localEntry._time, answers});
   pop();
   showToast('Запись добавлена');
 }
@@ -3650,7 +3652,7 @@ function renderJournalReportEntriesFull(type, point, entries){
 
     if(type==='health'){
       const staffHtml = Object.keys(entry)
-        .filter(k=>k.indexOf('Сотрудник')===0)
+        .filter(k=>/^Сотрудник\s?\d+$/.test(k))
         .map(k=>{
           const val = String(entry[k]);
           const isSick = val.indexOf('Нет')!==-1 || val.toLowerCase().indexOf('жалоб')!==-1;
@@ -3662,7 +3664,7 @@ function renderJournalReportEntriesFull(type, point, entries){
       bodyHtml = staffHtml || '<div class="empty-state" style="padding:14px;">Нет данных по сотрудникам</div>';
     } else {
       bodyHtml = Object.keys(entry)
-        .filter(k=>k!=='Дата и время' && k!=='Сотрудник')
+        .filter(k=>k!=='Дата и время' && k!=='Сотрудник' && k!=='Дата')
         .map(k=>`<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12.5px;">
           <span style="color:var(--espresso-soft);">${k}</span><span style="font-weight:600;">${entry[k]}</span>
         </div>`).join('');
