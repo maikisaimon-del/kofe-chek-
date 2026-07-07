@@ -3636,12 +3636,50 @@ function renderReadyShiftPoint(point){
     });
 }
 
+function num(v){
+  const n = parseFloat(String(v).replace(',','.'));
+  return isNaN(n) ? 0 : n;
+}
+
+function pctStr(fact, plan){
+  if(!plan) return '—';
+  return Math.round((fact/plan)*1000)/10 + '%';
+}
+
+function renderShiftSummaryBar(entries){
+  const planRev = entries.reduce((s,e)=>s+num(e['Выручка — План']),0);
+  const factRev = entries.reduce((s,e)=>s+num(e['Выручка — Факт']),0);
+  const avgCheckPlanVals = entries.map(e=>num(e['Средний чек — План'])).filter(v=>v>0);
+  const avgCheckFactVals = entries.map(e=>num(e['Средний чек — Факт'])).filter(v=>v>0);
+  const avgCheckPlan = avgCheckPlanVals.length ? avgCheckPlanVals.reduce((a,b)=>a+b,0)/avgCheckPlanVals.length : 0;
+  const avgCheckFact = avgCheckFactVals.length ? avgCheckFactVals.reduce((a,b)=>a+b,0)/avgCheckFactVals.length : 0;
+  const planWo = entries.reduce((s,e)=>s+num(e['Списание — План']),0);
+  const factWo = entries.reduce((s,e)=>s+num(e['Списание — Факт']),0);
+
+  const row = (label,value)=>`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12.5px;">
+    <span style="color:var(--espresso-soft);">${label}</span><span style="font-weight:700;">${value}</span>
+  </div>`;
+
+  return `
+  <div style="position:sticky;top:0;z-index:15;background:var(--cream);padding-bottom:10px;margin:-18px -16px 14px;padding-left:16px;padding-right:16px;padding-top:14px;box-shadow:0 8px 12px -8px rgba(44,27,18,0.15);">
+    <div class="q-block" style="margin-bottom:0;">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:var(--espresso-soft);font-weight:700;margin-bottom:6px;">Итого по всем сменам</div>
+      ${row('План ТО', Math.round(planRev)+' ₽')}
+      ${row('Факт ТО', Math.round(factRev)+' ₽ ('+pctStr(factRev,planRev)+')')}
+      ${row('Средний чек план', Math.round(avgCheckPlan)+' ₽')}
+      ${row('Средний чек факт', Math.round(avgCheckFact)+' ₽ ('+pctStr(avgCheckFact,avgCheckPlan)+')')}
+      ${row('Списание план', Math.round(planWo)+' ₽')}
+      ${row('Списание факт', Math.round(factWo)+' ₽ ('+pctStr(factWo,planWo)+')')}
+    </div>
+  </div>`;
+}
+
 function renderShiftReportEntries(point, entries){
   if(entries.length===0){
     contentEl.innerHTML = `<div class="empty-state"><span class="icon">🗒️</span>Записей пока нет.</div>`;
     return;
   }
-  contentEl.innerHTML = entries.map(e=>`
+  contentEl.innerHTML = renderShiftSummaryBar(entries) + entries.map(e=>`
     <div class="q-block" style="margin-bottom:12px;">
       <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
         <span style="font-weight:700;">Кофейня ${point}</span>
