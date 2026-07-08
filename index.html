@@ -410,7 +410,7 @@ const DATA = {
       scored:true,
       resultLabel:'Общий результат кофейни',
       hasBaristaSplit:true,
-      headerFields:[ {id:'Кофейня', label:'Кофейня'}, {id:'Сотрудники на смене', label:'Сотрудники на смене'}, {id:'Дата', label:'Дата'} ],
+      headerFields:[ {id:'Кофейня', label:'Кофейня', type:'select', options:['Садовая','Богданова']}, {id:'Сотрудники на смене', label:'Сотрудники на смене', type:'staff-multi'}, {id:'Дата', label:'Дата'} ],
       grading:[ {min:90, label:'Хорошо', color:'var(--sage)'}, {min:85, label:'Удовлетворительно', color:'var(--copper)'}, {min:0, label:'Плохо', color:'var(--alert)'} ],
       questions:[
         yn('a1','Входная группа (+летник)','Входная группа чистая'),
@@ -512,7 +512,7 @@ const DATA = {
       scored:true,
       resultLabel:'Результат бариста',
       hasBaristaSplit:false,
-      headerFields:[ {id:'Кофейня', label:'Кофейня'}, {id:'Сотрудники на смене', label:'Сотрудники на смене'}, {id:'Дата', label:'Дата'} ],
+      headerFields:[ {id:'Кофейня', label:'Кофейня', type:'select', options:['Садовая','Богданова']}, {id:'Сотрудники на смене', label:'Сотрудники на смене', type:'staff-multi'}, {id:'Дата', label:'Дата'} ],
       grading:[ {min:90, label:'Хорошо', color:'var(--sage)'}, {min:85, label:'Удовлетворительно', color:'var(--copper)'}, {min:0, label:'Плохо', color:'var(--alert)'} ],
       questions:[
         yn('b1','Чистота в кофейне','Чистая и заполненная витрина: отсутствие пустых полок, излишних пробелов между позициями, крошек и разводов'),
@@ -611,7 +611,7 @@ const DATA = {
       scored:true,
       resultLabel:'Общий результат за день',
       hasBaristaSplit:true,
-      headerFields:[ {id:'Кофейня', label:'Кофейня'}, {id:'Сотрудники на смене', label:'Сотрудники на смене'}, {id:'Дата', label:'Дата'} ],
+      headerFields:[ {id:'Кофейня', label:'Кофейня', type:'select', options:['Садовая','Богданова']}, {id:'Сотрудники на смене', label:'Сотрудники на смене', type:'staff-multi'}, {id:'Дата', label:'Дата'} ],
       grading:[ {min:90, label:'Хорошо', color:'var(--sage)'}, {min:85, label:'Удовлетворительно', color:'var(--copper)'}, {min:0, label:'Плохо', color:'var(--alert)'} ],
       questions:[
         yn('dl1','Входная группа (+летник)','Входная группа чистая'),
@@ -1629,6 +1629,8 @@ function render(){
     case 'employees-list': title='Сотрудники'; sub=''; renderEmployeesList(); break;
     case 'knowledge-hub': title='База знаний'; sub='Выберите раздел'; renderKnowledgeHub(); break;
     case 'ready-reports-hub': title='Готовая отчётность'; sub='Выберите раздел'; renderReadyReportsHub(); break;
+    case 'ready-audits-hub': title='Проверки'; sub='Выберите точку'; renderReadyAuditsHub(); break;
+    case 'ready-audits-point': title='Проверки — '+top.params.point; sub='Только нарушения с фото'; renderReadyAuditsPoint(top.params.point); break;
     case 'ready-shift-hub': title='Закрытие смены'; sub='Выберите точку'; renderReadyShiftHub(); break;
     case 'ready-shift-point': title='Закрытие смены — '+top.params.point; sub='Отчёты о закрытии'; renderReadyShiftPoint(top.params.point); break;
     case 'ready-journals-hub': title='Журналы'; sub='Выберите точку'; renderReadyJournalsHub(); break;
@@ -1979,7 +1981,7 @@ function setAns(id, value, el){
   if(zone && q && q.type==='yesno' && !q.alwaysPhoto){
     if(value==='Нет'){
       zone.style.display = 'block';
-      const needsComment = section==='checklists';
+      const needsComment = section==='checklists' || section==='audits';
       const commentHtml = needsComment ? `
         <div style="margin-top:10px;">
           <textarea rows="2" placeholder="Комментарий к нарушению (обязательно)" oninput="currentComments['${id}']=this.value" style="width:100%;">${currentComments[id]||''}</textarea>
@@ -2109,7 +2111,22 @@ function submitForm(){
     }
   }
 
-  if(section==='checklists' && Object.keys(currentComments).length>0){
+  if(section==='audits'){
+    for(const q of item.questions){
+      if(q.type==='yesno' && !q.alwaysPhoto && currentAnswers[q.id]==='Нет'){
+        if(!currentComments[q.id] || !currentComments[q.id].trim()){
+          showToast('Добавьте комментарий к нарушению: «'+q.text.slice(0,40)+(q.text.length>40?'…':'')+'»');
+          return;
+        }
+        if(!currentPhotos[q.id]){
+          showToast('Прикрепите фото к нарушению: «'+q.text.slice(0,40)+(q.text.length>40?'…':'')+'»');
+          return;
+        }
+      }
+    }
+  }
+
+  if((section==='checklists' || section==='audits') && Object.keys(currentComments).length>0){
     currentAnswers['Комментарии к нарушениям'] = Object.keys(currentComments)
       .map(qid=>{
         const q = item.questions.find(x=>x.id===qid);
@@ -3591,6 +3608,11 @@ function renderReportsHub(){
 
 function renderReadyReportsHub(){
   contentEl.innerHTML = `
+    <div class="item-row" onclick="push('ready-audits-hub')">
+      <div class="num">📋</div>
+      <div style="flex:1"><div class="txt">Проверки</div><div class="meta">Богданова · Садовая</div></div>
+      <div class="chev">›</div>
+    </div>
     <div class="item-row" onclick="push('ready-journals-hub')">
       <div class="num">📖</div>
       <div style="flex:1"><div class="txt">Журналы</div><div class="meta">Богданова · Садовая</div></div>
@@ -3602,6 +3624,61 @@ function renderReadyReportsHub(){
       <div class="chev">›</div>
     </div>
   `;
+}
+
+function renderReadyAuditsHub(){
+  contentEl.innerHTML = `
+    <div class="item-row" onclick="push('ready-audits-point',{point:'Богданова'})">
+      <div class="num">📍</div>
+      <div style="flex:1"><div class="txt">Богданова</div></div>
+      <div class="chev">›</div>
+    </div>
+    <div class="item-row" onclick="push('ready-audits-point',{point:'Садовая'})">
+      <div class="num">📍</div>
+      <div style="flex:1"><div class="txt">Садовая</div></div>
+      <div class="chev">›</div>
+    </div>
+  `;
+}
+
+function renderReadyAuditsPoint(point){
+  contentEl.innerHTML = `<div class="empty-state"><span class="icon">⏳</span>Загружаем…</div>`;
+  if(!CONFIG.scriptUrl){
+    contentEl.innerHTML = `<div class="empty-state"><span class="icon">⚙️</span>Подключите Google Таблицу в Настройках.</div>`;
+    return;
+  }
+  fetch(CONFIG.scriptUrl + '?action=auditReports&point=' + encodeURIComponent(point))
+    .then(r=>r.json())
+    .then(data=>{
+      if(data.status!=='ok') throw new Error(data.message||'Ошибка');
+      renderAuditReportEntries(point, data.entries||[]);
+    })
+    .catch(err=>{
+      contentEl.innerHTML = `<div class="empty-state"><span class="icon">⚠️</span>Не удалось загрузить.<br><span style="font-size:11px;">${err}</span></div>`;
+    });
+}
+
+function renderAuditReportEntries(point, entries){
+  if(entries.length===0){
+    contentEl.innerHTML = `<div class="empty-state"><span class="icon">🎉</span>Нарушений с фото не найдено.</div>`;
+    return;
+  }
+  contentEl.innerHTML = entries.map(e=>{
+    const violHtml = e.violations.map(v=>`
+      <div style="padding:10px 0;border-bottom:1px solid var(--line);">
+        <div style="font-size:13px;color:var(--alert);font-weight:600;">⚠️ ${v.text}</div>
+        <div style="font-size:12.5px;font-style:italic;margin:4px 0;">«${v.comment}»</div>
+        ${v.photo?`<img src="${v.photo}" style="width:100%;max-width:220px;border-radius:10px;margin-top:6px;">`:''}
+      </div>
+    `).join('');
+    return `<div class="q-block" style="margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+        <span style="font-weight:700;">${e.audit} — Кофейня ${point}</span>
+        <span style="font-size:12px;color:var(--espresso-soft);">${e.date||'—'}</span>
+      </div>
+      ${violHtml}
+    </div>`;
+  }).join('');
 }
 
 function renderReadyShiftHub(){
