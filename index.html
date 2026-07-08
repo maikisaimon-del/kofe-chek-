@@ -1964,6 +1964,15 @@ function updateChecklistStaffAnswer(fieldId){
   currentAnswers[fieldId] = names.join(', ');
 }
 
+function renderViolationZoneHtml(id, section){
+  const needsComment = section==='checklists' || section==='audits';
+  const commentHtml = needsComment ? `
+    <div style="margin-top:10px;">
+      <textarea rows="2" placeholder="Комментарий к нарушению (обязательно)" oninput="currentComments['${id}']=this.value" style="width:100%;">${currentComments[id]||''}</textarea>
+    </div>` : '';
+  return renderMediaZoneHtml(id,'image') + commentHtml;
+}
+
 function setAns(id, value, el){
   currentAnswers[id] = value;
   if(el && el.parentElement.classList.contains('yesno-row')){
@@ -1981,12 +1990,7 @@ function setAns(id, value, el){
   if(zone && q && q.type==='yesno' && !q.alwaysPhoto){
     if(value==='Нет'){
       zone.style.display = 'block';
-      const needsComment = section==='checklists' || section==='audits';
-      const commentHtml = needsComment ? `
-        <div style="margin-top:10px;">
-          <textarea rows="2" placeholder="Комментарий к нарушению (обязательно)" oninput="currentComments['${id}']=this.value" style="width:100%;">${currentComments[id]||''}</textarea>
-        </div>` : '';
-      zone.innerHTML = renderMediaZoneHtml(id,'image') + commentHtml;
+      zone.innerHTML = renderViolationZoneHtml(id, section);
     } else {
       zone.style.display = 'none';
       zone.innerHTML = '';
@@ -2025,14 +2029,15 @@ function handleMediaSelect(id, inputEl, kind){
   const top = stack[stack.length-1];
   const q = top.params.item.questions.find(x=>x.id===id);
   const qText = q ? q.text : id;
+  const isStandaloneMedia = q && (q.type==='photo' || q.type==='audio'); // не yes/no-вопрос — своего ответа не имеет
 
   if(kind==='audio'){
     const reader = new FileReader();
     reader.onload = function(ev){
       currentPhotos[id] = { dataUrl: ev.target.result, text: qText, kind:'audio', mime: file.type||'audio/mpeg' };
-      currentAnswers[id] = 'Прикреплено';
+      if(isStandaloneMedia) currentAnswers[id] = 'Прикреплено';
       const zone = document.getElementById('photozone_'+id);
-      if(zone) zone.innerHTML = renderMediaZoneHtml(id,'audio');
+      if(zone) zone.innerHTML = isStandaloneMedia ? renderMediaZoneHtml(id,'audio') : renderViolationZoneHtml(id, top.params.section);
       updateProgress();
     };
     reader.readAsDataURL(file);
@@ -2053,9 +2058,9 @@ function handleMediaSelect(id, inputEl, kind){
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
       currentPhotos[id] = { dataUrl, text: qText, kind:'image', mime:'image/jpeg' };
-      currentAnswers[id] = 'Прикреплено';
+      if(isStandaloneMedia) currentAnswers[id] = 'Прикреплено';
       const zone = document.getElementById('photozone_'+id);
-      if(zone) zone.innerHTML = renderMediaZoneHtml(id,'image');
+      if(zone) zone.innerHTML = isStandaloneMedia ? renderMediaZoneHtml(id,'image') : renderViolationZoneHtml(id, top.params.section);
       updateProgress();
     };
     img.src = ev.target.result;
@@ -2065,12 +2070,13 @@ function handleMediaSelect(id, inputEl, kind){
 
 function removeMedia(id){
   delete currentPhotos[id];
-  delete currentAnswers[id];
   const top = stack[stack.length-1];
   const q = (top && top.params && top.params.item) ? top.params.item.questions.find(x=>x.id===id) : null;
+  const isStandaloneMedia = q && (q.type==='photo' || q.type==='audio');
+  if(isStandaloneMedia) delete currentAnswers[id];
   const kind = (q && q.type==='audio') ? 'audio' : 'image';
   const zone = document.getElementById('photozone_'+id);
-  if(zone) zone.innerHTML = renderMediaZoneHtml(id, kind);
+  if(zone) zone.innerHTML = isStandaloneMedia ? renderMediaZoneHtml(id, kind) : renderViolationZoneHtml(id, top.params.section);
   updateProgress();
 }
 
