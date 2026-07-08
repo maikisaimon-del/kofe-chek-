@@ -3666,25 +3666,98 @@ function renderReadyAuditsPoint(point){
 
 function renderAuditReportEntries(point, entries){
   if(entries.length===0){
-    contentEl.innerHTML = `<div class="empty-state"><span class="icon">🎉</span>Нарушений с фото не найдено.</div>`;
+    contentEl.innerHTML = `<div class="empty-state"><span class="icon">🎉</span>Нарушений нет — всё устранено и подтверждено.</div>`;
     return;
   }
-  contentEl.innerHTML = entries.map(e=>{
-    const violHtml = e.violations.map(v=>`
-      <div style="padding:10px 0;border-bottom:1px solid var(--line);">
-        <div style="font-size:13px;color:var(--alert);font-weight:600;">⚠️ ${v.text}</div>
-        <div style="font-size:12.5px;font-style:italic;margin:4px 0;">«${v.comment}»</div>
-        ${v.photo?`<img src="${v.photo}" style="width:100%;max-width:220px;border-radius:10px;margin-top:6px;">`:''}
+  contentEl.innerHTML = entries.map(v=>violationCardHtml(point, v)).join('');
+}
+
+function violationCardHtml(point, v){
+  const isFixed = v.status==='Устранено';
+  return `<div class="q-block" style="margin-bottom:14px;" id="viol_${v.id}">
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+      <span style="font-weight:700;font-size:13px;">${v.audit} — Кофейня ${point}</span>
+      <span style="font-size:12px;color:var(--espresso-soft);">${v.date||'—'}</span>
+    </div>
+    <div style="font-size:13px;color:var(--alert);font-weight:600;">⚠️ ${v.text}</div>
+    <div style="font-size:12.5px;font-style:italic;margin:4px 0 8px;">«${v.comment}»</div>
+    ${v.photo?`<img src="${v.photo}" style="width:100%;max-width:220px;border-radius:10px;">`:''}
+    <div id="violFixArea_${v.id}">${violationFixAreaHtml(v)}</div>
+  </div>`;
+}
+
+function violationFixAreaHtml(v){
+  if(v.status==='Устранено' && v.fixPhoto){
+    return `
+      <div style="margin-top:12px;">
+        <div style="font-size:12px;color:var(--sage-dark);font-weight:600;margin-bottom:6px;">✓ Фото устранения</div>
+        <img src="${v.fixPhoto}" style="width:100%;max-width:220px;border-radius:10px;">
       </div>
-    `).join('');
-    return `<div class="q-block" style="margin-bottom:14px;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-        <span style="font-weight:700;">${e.audit} — Кофейня ${point}</span>
-        <span style="font-size:12px;color:var(--espresso-soft);">${e.date||'—'}</span>
-      </div>
-      ${violHtml}
-    </div>`;
-  }).join('');
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button style="flex:1;padding:11px;border:none;border-radius:10px;background:var(--sage);color:#fff;font-weight:700;font-size:13px;cursor:pointer;" onclick="confirmViolationFix('${v.id}')">✓ Подтверждено</button>
+        <button style="flex:1;padding:11px;border:none;border-radius:10px;background:var(--alert);color:#fff;font-weight:700;font-size:13px;cursor:pointer;" onclick="rejectViolationFix('${v.id}')">✕ Отклонено</button>
+      </div>`;
+  }
+  return `
+    <label class="note-toggle" style="display:inline-flex;align-items:center;gap:6px;background:var(--cream);border:1.5px dashed var(--copper);border-radius:10px;padding:9px 12px;cursor:pointer;color:var(--copper-dark);margin-top:12px;">
+      🔧 Устранено — прикрепить фото
+      <input type="file" accept="image/*" capture="environment" style="display:none" onchange="handleResolveViolation('${v.id}', this)">
+    </label>`;
+}
+
+function handleResolveViolation(id, inputEl){
+  const file = inputEl.files && inputEl.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    const img = new Image();
+    img.onload = function(){
+      const maxW = 900;
+      const scale = Math.min(1, maxW/img.width);
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width*scale;
+      canvas.height = img.height*scale;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+
+      fetch(CONFIG.scriptUrl, {
+        method:'POST', mode:'no-cors',
+        headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body: JSON.stringify({ action:'resolveViolation', id, photo:{dataUrl, mime:'image/jpeg'} })
+      }).catch(err=>console.warn('Ошибка отправки фото устранения:', err));
+
+      const area = document.getElementById('violFixArea_'+id);
+      if(area) area.innerHTML = violationFixAreaHtml({status:'Устранено', fixPhoto:dataUrl});
+      showToast('Фото устранения прикреплено');
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function confirmViolationFix(id){
+  fetch(CONFIG.scriptUrl, {
+    method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify({ action:'confirmViolation', id })
+  }).catch(err=>console.warn('Ошибка подтверждения нарушения:', err));
+
+  const card = document.getElementById('viol_'+id);
+  if(card) card.remove();
+  showToast('Нарушение подтверждено и убрано из списка');
+}
+
+function rejectViolationFix(id){
+  fetch(CONFIG.scriptUrl, {
+    method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify({ action:'rejectViolation', id })
+  }).catch(err=>console.warn('Ошибка отклонения нарушения:', err));
+
+  const area = document.getElementById('violFixArea_'+id);
+  if(area) area.innerHTML = violationFixAreaHtml({status:'Ожидает'});
+  showToast('Отклонено — нужно устранить заново');
 }
 
 function renderReadyShiftHub(){
