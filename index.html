@@ -1629,6 +1629,9 @@ function render(){
     case 'employees-list': title='Сотрудники'; sub=''; renderEmployeesList(); break;
     case 'knowledge-hub': title='База знаний'; sub='Выберите раздел'; renderKnowledgeHub(); break;
     case 'ready-reports-hub': title='Готовая отчётность'; sub='Выберите раздел'; renderReadyReportsHub(); break;
+    case 'manager-login': title='Управляющий'; sub='Доступ по паролю'; renderManagerLogin(); break;
+    case 'manager-area': title='Управляющий'; sub=''; renderManagerArea(); break;
+    case 'rko-form': title='РКО'; sub='Расходный кассовый ордер'; renderRkoForm(); break;
     case 'ready-audits-hub': title='Проверки'; sub='Выберите точку'; renderReadyAuditsHub(); break;
     case 'ready-audits-point': title='Проверки — '+top.params.point; sub='Только нарушения с фото'; renderReadyAuditsPoint(top.params.point); break;
     case 'ready-shift-hub': title='Закрытие смены'; sub='Выберите точку'; renderReadyShiftHub(); break;
@@ -1676,6 +1679,10 @@ function renderHome(){
 
     <div class="card-grid">
       ${catCard('🗂️','Готовая отчётность','Журналы →','push','ready-reports-hub')}
+    </div>
+
+    <div class="card-grid">
+      ${catCard('🔐','Управляющий','Доступ по паролю →','push','manager-login')}
     </div>
 
     <div class="feedback-strip" onclick="openOrderSheet()">
@@ -3607,6 +3614,104 @@ function renderReportsHub(){
     <div class="item-row" onclick="openShiftReport('bogdanova')">
       <div class="num">📍</div>
       <div style="flex:1"><div class="txt">Закрытие смены — Богданова</div><div class="meta">ежедневный отчёт</div></div>
+      <div class="chev">›</div>
+    </div>
+  `;
+}
+
+const MANAGER_PASSWORD = '6364';
+
+function renderManagerLogin(){
+  contentEl.innerHTML = `
+    <div class="who-field">
+      <label>Пароль</label>
+      <input type="password" id="managerPasswordInput" placeholder="Введите пароль" inputmode="numeric" onkeydown="if(event.key==='Enter') checkManagerPassword();">
+    </div>
+    <button class="btn-primary" onclick="checkManagerPassword()">Войти</button>
+  `;
+  setTimeout(()=>{ const el=document.getElementById('managerPasswordInput'); if(el) el.focus(); }, 100);
+}
+
+function checkManagerPassword(){
+  const val = document.getElementById('managerPasswordInput').value;
+  if(val === MANAGER_PASSWORD){
+    push('manager-area', {});
+  } else {
+    showToast('Неверный пароль');
+  }
+}
+
+function renderRkoForm(){
+  contentEl.innerHTML = `
+    <div class="who-field">
+      <label>Подразделение</label>
+      <select id="rko_podrazdelenie">
+        <option value="" selected disabled>Выберите</option>
+        <option value="Садовая">Садовая</option>
+        <option value="Богданова">Богданова</option>
+      </select>
+    </div>
+    <div class="who-field">
+      <label>Сумма, руб.</label>
+      <input type="number" id="rko_sum" placeholder="Например, 5000">
+    </div>
+    <div class="who-field">
+      <label>ФИО получателя</label>
+      <select id="rko_fio">${nameSelectOptions('')}</select>
+    </div>
+    <div class="who-field">
+      <label>Основание</label>
+      <textarea id="rko_osnovanie" rows="2" placeholder="Например, возмещение расходов на..."></textarea>
+    </div>
+    <div class="who-field">
+      <label>Паспортные данные получателя</label>
+      <textarea id="rko_passport" rows="2" placeholder="Серия, номер, кем и когда выдан"></textarea>
+    </div>
+    <button class="btn-primary" onclick="submitRko()">Сформировать и отправить в Telegram</button>
+  `;
+}
+
+function submitRko(){
+  const podrazdelenie = document.getElementById('rko_podrazdelenie').value;
+  const sum = document.getElementById('rko_sum').value;
+  const fio = document.getElementById('rko_fio').value;
+  const osnovanie = document.getElementById('rko_osnovanie').value.trim();
+  const passport = document.getElementById('rko_passport').value.trim();
+
+  if(!podrazdelenie){ showToast('Выберите подразделение'); return; }
+  if(!sum || parseFloat(sum)<=0){ showToast('Укажите сумму'); return; }
+  if(!fio){ showToast('Выберите ФИО получателя'); return; }
+  if(!osnovanie){ showToast('Заполните основание'); return; }
+  if(!passport){ showToast('Заполните паспортные данные'); return; }
+
+  if(!CONFIG.scriptUrl){
+    showToast('Сначала подключите Google Таблицу в Настройках');
+    return;
+  }
+
+  fetch(CONFIG.scriptUrl, {
+    method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify({
+      action:'generateRko',
+      fields:{ podrazdelenie, sum, fio, osnovanie, passport }
+    })
+  }).catch(err=>console.warn('Ошибка отправки РКО:', err));
+
+  contentEl.innerHTML = `
+    <div class="empty-state">
+      <span class="icon">✅</span>
+      РКО формируется и будет отправлен в Telegram в течение нескольких секунд.
+    </div>
+    <button class="btn-secondary" onclick="push('rko-form')">Составить ещё один РКО</button>
+  `;
+}
+
+function renderManagerArea(){
+  contentEl.innerHTML = `
+    <div class="item-row" onclick="push('rko-form')">
+      <div class="num">📄</div>
+      <div style="flex:1"><div class="txt">РКО</div><div class="meta">Расходный кассовый ордер</div></div>
       <div class="chev">›</div>
     </div>
   `;
