@@ -297,7 +297,7 @@
 </head>
 <body>
 <div id="splashScreen" style="position:fixed;inset:0;z-index:9999;background:#2C1B12;display:flex;align-items:center;justify-content:center;">
-  <video id="splashVideo" src="splash.mp4" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover;"></video>
+  <img src="icon-512.png" alt="Кофе Чек" style="width:60%;max-width:280px;border-radius:24px;box-shadow:0 12px 40px rgba(0,0,0,0.4);">
 </div>
 <div class="phone" id="phone">
   <div class="topbar" id="topbar"></div>
@@ -324,7 +324,6 @@ if('serviceWorker' in navigator){
 
 (function(){
   const splash = document.getElementById('splashScreen');
-  const video = document.getElementById('splashVideo');
   if(!splash) return;
   let dismissed = false;
   function hideSplash(){
@@ -334,12 +333,8 @@ if('serviceWorker' in navigator){
     splash.style.opacity = '0';
     setTimeout(()=>{ splash.remove(); }, 400);
   }
-  if(video){
-    video.addEventListener('ended', hideSplash);
-    video.addEventListener('error', hideSplash);
-  }
   splash.addEventListener('click', hideSplash);
-  setTimeout(hideSplash, 3500); // подстраховка, если видео не проиграется
+  setTimeout(hideSplash, 1200);
 })();
 
 const FIREBASE_CONFIG = {
