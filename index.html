@@ -1742,6 +1742,7 @@ function render(){
     case 'ready-reports-hub': title='Готовая отчётность'; sub='Выберите раздел'; renderReadyReportsHub(); break;
     case 'manager-login': title='Управляющий'; sub='Доступ по паролю'; renderManagerLogin(); break;
     case 'manager-area': title='Управляющий'; sub=''; renderManagerArea(); break;
+    case 'announcement-detail': title='Сообщение'; sub=''; renderAnnouncementDetail(top.params); break;
     case 'rko-form': title='РКО'; sub='Расходный кассовый ордер'; renderRkoForm(); break;
     case 'ready-audits-hub': title='Проверки'; sub='Выберите точку'; renderReadyAuditsHub(); break;
     case 'ready-audits-point': title='Проверки — '+top.params.point; sub='Только нарушения с фото'; renderReadyAuditsPoint(top.params.point); break;
@@ -1804,6 +1805,8 @@ function renderHome(){
       </div>
     </div>
 
+    <div id="announcementsBox"></div>
+
     <div style="height:96px;"></div>
 
     <div class="dock">
@@ -1813,6 +1816,35 @@ function renderHome(){
       ${appIcon('🎓','Учёт<br>обучения','openTrainingReport','training')}
       ${appIcon('👤','Начисления','openEmployeesList')}
     </div>
+  `;
+  loadAnnouncements();
+}
+
+function loadAnnouncements(){
+  const box = document.getElementById('announcementsBox');
+  if(!box || !CONFIG.scriptUrl) return;
+  fetch(CONFIG.scriptUrl + '?action=announcements')
+    .then(r=>r.json())
+    .then(data=>{
+      if(data.status!=='ok' || !data.messages || data.messages.length===0) return;
+      box.innerHTML = data.messages.map(m=>`
+        <div class="q-block" style="margin-top:14px;cursor:pointer;" onclick='openAnnouncement(${JSON.stringify(m.text)}, ${JSON.stringify(m.created)})'>
+          <div style="font-size:11px;color:var(--espresso-soft);font-weight:600;margin-bottom:6px;">📢 Сообщение от управляющего · ${m.created}</div>
+          <div style="font-size:14px;line-height:1.5;white-space:pre-wrap;">${m.text}</div>
+        </div>
+      `).join('');
+    })
+    .catch(err=>console.warn('Не удалось загрузить сообщения:', err));
+}
+
+function openAnnouncement(text, created){
+  push('announcement-detail', {text, created});
+}
+
+function renderAnnouncementDetail(params){
+  contentEl.innerHTML = `
+    <div style="font-size:11px;color:var(--espresso-soft);font-weight:600;margin-bottom:10px;">📢 Сообщение от управляющего · ${params.created}</div>
+    <div style="font-size:16px;line-height:1.6;white-space:pre-wrap;">${params.text}</div>
   `;
 }
 
