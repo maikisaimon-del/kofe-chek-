@@ -1796,6 +1796,14 @@ function renderHome(){
       ${appIcon('📊','Итоги<br>смен','push','ready-shift-hub')}
     </div>
 
+    <div class="feedback-strip" onclick="push('manager-login')">
+      <div class="icon">🔐</div>
+      <div>
+        <strong>Управляющий</strong>
+        <span>Доступ по паролю</span>
+      </div>
+    </div>
+
     <div style="height:96px;"></div>
 
     <div class="dock">
@@ -1804,7 +1812,6 @@ function renderHome(){
       ${appIcon('⏱️','Учёт<br>рабочего','openTimesheetForm')}
       ${appIcon('🎓','Учёт<br>обучения','openTrainingReport','training')}
       ${appIcon('👤','Начисления','openEmployeesList')}
-      ${appIcon('🔐','Управляющий','push','manager-login')}
     </div>
   `;
 }
