@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Кофе Чек</title>
+<title>Дом кофе</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#2C1B12">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Кофе Чек">
+<meta name="apple-mobile-web-app-title" content="Дом кофе">
 <link rel="icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -27,11 +27,26 @@
     --alert:#AE4038;
     --line:rgba(44,27,18,0.12);
     --shadow: 0 8px 24px rgba(44,27,18,0.10);
+    --dark-surface:#2C1B12;
+    --on-dark:#FAF3E6;
+    --body-grad-1:#EFE3CB;
+    --body-grad-2:#E3D2AD;
+  }
+  html[data-theme="dark"]{
+    --espresso:#F1E4CC;
+    --espresso-soft:#C9B8A3;
+    --cream:#1B120C;
+    --parchment:#2A1D14;
+    --parchment-dark:#352417;
+    --line:rgba(255,255,255,0.12);
+    --shadow: 0 8px 24px rgba(0,0,0,0.45);
+    --body-grad-1:#1B120C;
+    --body-grad-2:#100B07;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
-    background: linear-gradient(180deg,#EFE3CB 0%, #E3D2AD 100%);
+    background: linear-gradient(180deg, var(--body-grad-1) 0%, var(--body-grad-2) 100%);
     font-family:'Inter',sans-serif;
     color:var(--espresso);
     display:flex;
@@ -51,8 +66,8 @@
   }
   .topbar{
     position:sticky; top:0; z-index:20;
-    background:var(--espresso);
-    color:var(--cream);
+    background:var(--dark-surface);
+    color:var(--on-dark);
     padding:16px 16px 14px;
     display:flex;
     align-items:center;
@@ -132,8 +147,8 @@
   .cat-card .chev{ margin-left:auto; opacity:0.35; font-size:18px; }
   .feedback-strip{
     margin-top:26px;
-    background:var(--espresso);
-    color:var(--cream);
+    background:var(--dark-surface);
+    color:var(--on-dark);
     border-radius:16px;
     padding:15px 16px;
     display:flex; align-items:center; gap:12px;
@@ -286,7 +301,7 @@
 
   .toast{
     position:fixed; bottom:22px; left:50%; transform:translateX(-50%);
-    background:var(--espresso); color:var(--cream); padding:11px 18px; border-radius:30px;
+    background:var(--dark-surface); color:var(--on-dark); padding:11px 18px; border-radius:30px;
     font-size:13px; font-weight:600; box-shadow:var(--shadow); z-index:100; opacity:0; pointer-events:none;
     transition:opacity .25s ease, bottom .25s ease; max-width:85%; text-align:center;
   }
@@ -297,7 +312,7 @@
 </head>
 <body>
 <div id="splashScreen" style="position:fixed;inset:0;z-index:9999;background:#2C1B12;display:flex;align-items:center;justify-content:center;">
-  <img src="icon-512.png" alt="Кофе Чек" style="width:60%;max-width:280px;border-radius:24px;box-shadow:0 12px 40px rgba(0,0,0,0.4);">
+  <img src="icon-512.png" alt="Дом кофе" style="width:60%;max-width:280px;border-radius:24px;box-shadow:0 12px 40px rgba(0,0,0,0.4);">
 </div>
 <div class="phone" id="phone">
   <div class="topbar" id="topbar"></div>
@@ -381,7 +396,7 @@ async function enablePushNotifications(){
     pushEnabled = true;
     showToast('Уведомления включены на этом устройстве');
     messaging.onMessage(payload=>{
-      const t = payload.notification && payload.notification.title || 'Кофе Чек';
+      const t = payload.notification && payload.notification.title || 'Дом кофе';
       const b = payload.notification && payload.notification.body || '';
       showToast(t + (b?(': '+b):''));
     });
@@ -416,8 +431,28 @@ function nameSelectOptions(selected){
 const STATE = {
   submissions: [],     // локальный журнал отправок (демо-режим офлайн)
   journalEntries: {},  // записи в журналах, только в рамках сессии; ключи создаются динамически
-  userName: ''
+  userName: '',
+  theme: localStorage.getItem('kc_theme') || 'auto'
 };
+
+function applyTheme(){
+  const isDark = STATE.theme === 'dark' || (STATE.theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+}
+
+function setTheme(theme){
+  STATE.theme = theme;
+  localStorage.setItem('kc_theme', theme);
+  applyTheme();
+  render();
+}
+
+applyTheme();
+if(window.matchMedia){
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{
+    if(STATE.theme === 'auto') applyTheme();
+  });
+}
 
 function getJournalEntries(key){
   if(!STATE.journalEntries[key]) STATE.journalEntries[key] = [];
@@ -1631,7 +1666,7 @@ const contentEl = document.getElementById('content');
 function render(){
   const top = stack[stack.length-1];
   const showBack = stack.length>1;
-  let title = 'Кофе Чек', sub = '';
+  let title = 'Дом кофе', sub = '';
 
   switch(top.view){
     case 'home': renderHome(); title=''; break;
@@ -1680,7 +1715,15 @@ function render(){
 
   topbarEl.innerHTML = `
     ${showBack ? `<div class="back" onclick="pop()">←</div>` : ''}
-    ${title ? `<div><h1>${title}</h1>${sub?`<div class="sub">${sub}</div>`:''}</div>` : ''}
+    ${top.view==='home' ? `
+      <div style="display:flex;align-items:center;gap:10px;">
+        <img src="icon-512.png" alt="Дом кофе" style="width:36px;height:36px;border-radius:9px;flex-shrink:0;object-fit:cover;">
+        <div>
+          <h1 style="font-size:19px;">Дом кофе</h1>
+          <div class="sub">Аудиты и стандарты вашей смены</div>
+        </div>
+      </div>
+    ` : (title ? `<div><h1>${title}</h1>${sub?`<div class="sub">${sub}</div>`:''}</div>` : '')}
     ${!showBack ? `<div class="back" style="margin-left:auto" onclick="push('settings')">⚙️</div>` : ''}
   `;
   contentEl.scrollTop = 0;
@@ -1688,14 +1731,6 @@ function render(){
 
 function renderHome(){
   contentEl.innerHTML = `
-    <div class="brand">
-      ${cupSvg(46)}
-      <div>
-        <h1>Кофе Чек</h1>
-        <div class="tag">Аудиты и стандарты вашей смены</div>
-      </div>
-    </div>
-
     <div class="card-grid">
       ${catCard('📋','Аудиты/Ежедневки','Проверки · Чек-листы · Журналы →','push','audits-hub')}
     </div>
@@ -3558,6 +3593,14 @@ function submitFeedback(){
 function renderSettings(){
   const connected = !!CONFIG.scriptUrl;
   contentEl.innerHTML = `
+    <div class="settings-box">
+      <label>Тема приложения</label>
+      <div style="display:flex;gap:8px;margin-top:6px;">
+        <button class="btn-secondary" style="flex:1;margin-top:0;${STATE.theme==='light'?'background:var(--copper);color:#fff;border-color:var(--copper);':''}" onclick="setTheme('light')">☀️ Светлая</button>
+        <button class="btn-secondary" style="flex:1;margin-top:0;${STATE.theme==='dark'?'background:var(--copper);color:#fff;border-color:var(--copper);':''}" onclick="setTheme('dark')">🌙 Тёмная</button>
+        <button class="btn-secondary" style="flex:1;margin-top:0;${STATE.theme==='auto'?'background:var(--copper);color:#fff;border-color:var(--copper);':''}" onclick="setTheme('auto')">📱 Как в телефоне</button>
+      </div>
+    </div>
     <div class="settings-box">
       <label>Статус подключения</label>
       <span class="badge"><span class="status-dot" style="background:${connected?'var(--sage)':'var(--alert)'}"></span>${connected?'Подключено к Google Таблице':'Демо-режим (без выгрузки)'}</span>
