@@ -126,6 +126,46 @@
   }
   .section-title:first-of-type{margin-top:0;}
   .card-grid{ display:flex; flex-direction:column; gap:10px; }
+
+  .app-grid{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:16px 6px;
+    margin-bottom:24px;
+  }
+  .app-icon{
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+    cursor:pointer; text-align:center;
+  }
+  .app-icon .tile{
+    width:56px; height:56px; border-radius:15px;
+    background:var(--parchment);
+    display:flex; align-items:center; justify-content:center;
+    font-size:25px;
+    box-shadow:var(--shadow);
+  }
+  .app-icon:active .tile{ transform:scale(0.93); }
+  .app-icon .label{
+    font-size:10px; font-weight:600; line-height:1.15;
+    color:var(--espresso); max-width:68px;
+  }
+
+  .dock{
+    position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+    width:100%; max-width:430px;
+    background:rgba(241,228,204,0.88);
+    backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    border-top-left-radius:26px; border-top-right-radius:26px;
+    padding:10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+    display:flex; justify-content:space-around; align-items:flex-start;
+    box-shadow:0 -6px 24px rgba(44,27,18,0.14);
+    z-index:60;
+  }
+  html[data-theme="dark"] .dock{ background:rgba(42,29,20,0.88); }
+  .dock .app-icon .tile{ width:42px; height:42px; font-size:19px; border-radius:12px; }
+  .dock .app-icon .label{ font-size:8px; max-width:48px; }
+  .dock{ gap:2px; padding-left:8px; padding-right:8px; }
+
   .cat-card{
     background:var(--parchment);
     border-radius:16px;
@@ -1737,24 +1777,34 @@ function render(){
 
 function renderHome(){
   contentEl.innerHTML = `
-    <div class="card-grid">
-      ${catCard('📋','Аудиты/Ежедневки','Проверки · Чек-листы · Журналы →','push','audits-hub')}
+    <div class="app-grid">
+      ${appIcon('📋','Проверки','openList','audits')}
+      ${appIcon('✅','Чек-листы','openList','checklists')}
+      ${appIcon('📖','Журналы','openList','journals')}
     </div>
 
-    <div class="card-grid">
-      ${catCard('📊','Отчёты','Закрывающие · время · сотрудники →','push','reports-hub')}
+    <div class="app-grid">
+      ${appIcon('📐','ТТК','openList','ttk')}
+      ${appIcon('🌡️','Сроки<br>хранения','openKbDirect','shelfLife')}
+      ${appIcon('🧾','Матрица<br>продуктов','push','product-matrix-hub')}
+      ${appIcon('📚','Стандарты','openList','knowledge')}
     </div>
 
-    <div class="card-grid">
-      ${catCard('📚','База знаний','ТТК · сроки · матрицы · стандарты →','push','knowledge-hub')}
+    <div class="app-grid">
+      ${appIcon('📋','Итоги<br>проверок','push','ready-audits-hub')}
+      ${appIcon('📖','Заполненные<br>журналы','push','ready-journals-hub')}
+      ${appIcon('📊','Итоги<br>смен','push','ready-shift-hub')}
     </div>
 
-    <div class="card-grid">
-      ${catCard('🗂️','Готовая отчётность','Журналы →','push','ready-reports-hub')}
-    </div>
+    <div style="height:96px;"></div>
 
-    <div class="card-grid">
-      ${catCard('🔐','Управляющий','Доступ по паролю →','push','manager-login')}
+    <div class="dock">
+      ${appIcon('📍','Садовая','openShiftReport','sadovaya')}
+      ${appIcon('📍','Богданова','openShiftReport','bogdanova')}
+      ${appIcon('⏱️','Учёт<br>рабочего','openTimesheetForm')}
+      ${appIcon('🎓','Учёт<br>обучения','openTrainingReport','training')}
+      ${appIcon('👤','Начисления','openEmployeesList')}
+      ${appIcon('🔐','Управляющий','push','manager-login')}
     </div>
   `;
 }
@@ -1765,6 +1815,18 @@ function catCard(icon,title,sub,fn,arg){
     <div class="txt"><strong>${title}</strong><span>${sub}</span></div>
     <div class="chev">›</div>
   </div>`;
+}
+
+function appIcon(icon,label,fn,arg){
+  const call = arg!==undefined ? `${fn}('${arg}')` : `${fn}()`;
+  return `<div class="app-icon" onclick="${call}">
+    <div class="tile">${icon}</div>
+    <div class="label">${label}</div>
+  </div>`;
+}
+
+function openTimesheetForm(){
+  openForm('timesheet','hours');
 }
 
 function openList(section){
